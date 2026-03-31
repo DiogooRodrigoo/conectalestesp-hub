@@ -1,0 +1,144 @@
+# =============================================================================
+# .gitignore — Conecta Leste SP Hub
+# Cobre: Next.js, Node.js, TypeScript, macOS, Vercel, variáveis de ambiente
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# SEGURANCA — NUNCA commitar esses arquivos
+# -----------------------------------------------------------------------------
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env.staging
+.env.*.local
+
+# Arquivos com credenciais ou chaves
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# -----------------------------------------------------------------------------
+# NEXT.JS
+# -----------------------------------------------------------------------------
+# Build output
+/.next/
+/out/
+
+# Production build
+/build
+
+# Next.js cache (regenerado automaticamente)
+.next/cache/
+
+# Static export
+/export
+
+# -----------------------------------------------------------------------------
+# NODE.JS / NPM / YARN / PNPM
+# -----------------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Package manager locks (manter apenas um — o que o projeto usa)
+# Se usar npm: manter package-lock.json, ignorar os outros
+# Se usar pnpm: manter pnpm-lock.yaml, ignorar os outros
+# Se usar yarn: manter yarn.lock, ignorar os outros
+
+# -----------------------------------------------------------------------------
+# TYPESCRIPT
+# -----------------------------------------------------------------------------
+*.tsbuildinfo
+next-env.d.ts
+
+# -----------------------------------------------------------------------------
+# VERCEL
+# -----------------------------------------------------------------------------
+.vercel
+
+# -----------------------------------------------------------------------------
+# MACOS
+# -----------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Pasta de atributos estendidos do macOS
+__MACOSX/
+
+# -----------------------------------------------------------------------------
+# EDITORES E IDEs
+# -----------------------------------------------------------------------------
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# JetBrains
+.idea/
+*.iml
+*.iws
+
+# Vim
+*.vim
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+*.elc
+
+# -----------------------------------------------------------------------------
+# LOGS E TEMPORARIOS
+# -----------------------------------------------------------------------------
+logs/
+*.log
+*.log.*
+.tmp/
+tmp/
+temp/
+*.tmp
+*.temp
+*.cache
+
+# -----------------------------------------------------------------------------
+# TESTES
+# -----------------------------------------------------------------------------
+/coverage/
+/.nyc_output/
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# -----------------------------------------------------------------------------
+# OUTROS
+# -----------------------------------------------------------------------------
+# Gerado pelo Prettier/ESLint
+.eslintcache
+.stylelintcache
+
+# Turbopack
+.turbo/

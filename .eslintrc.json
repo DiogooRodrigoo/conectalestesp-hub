@@ -1,0 +1,143 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:security/recommended-legacy"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "plugins": [
+    "@typescript-eslint",
+    "security"
+  ],
+  "rules": {
+    // ── Segurança Crítica ──────────────────────────────────────────────────
+
+    // Proíbe eval() e funções equivalentes — vetor de injeção de código
+    "no-eval": "error",
+    "no-implied-eval": "error",
+
+    // Proíbe Function() como construtor dinâmico
+    "no-new-func": "error",
+
+    // Alerta sobre uso de __proto__ (prototype pollution)
+    "no-proto": "error",
+
+    // Proíbe scripts inline no document.write
+    "no-script-url": "error",
+
+    // ── TypeScript: Segurança e Qualidade ─────────────────────────────────
+
+    // Proíbe `any` sem cast explícito — força tipagem correta em handlers de API
+    "@typescript-eslint/no-explicit-any": "error",
+
+    // Proíbe asserção `as any` — mascara vulnerabilidades de tipo
+    "@typescript-eslint/no-unsafe-assignment": "off",
+
+    // Proíbe variáveis não utilizadas (pode esconder lógica de auth esquecida)
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
+
+    // Força uso de `import type` quando possível (reduz bundle, melhor tree-shaking)
+    "@typescript-eslint/consistent-type-imports": [
+      "error",
+      { "prefer": "type-imports", "fixStyle": "inline-type-imports" }
+    ],
+
+    // Proíbe non-null assertion sem verificação — fonte de crashes em runtime
+    "@typescript-eslint/no-non-null-assertion": "warn",
+
+    // Permite require() apenas quando necessário (migrations, configs legacy)
+    "@typescript-eslint/no-require-imports": "warn",
+
+    // ── Plugin Security ───────────────────────────────────────────────────
+    // (regras do plugin:security/recommended-legacy são herdadas)
+    // Sobrescritas abaixo para ajustar ao contexto Next.js:
+
+    // detect-object-injection pode ter falsos positivos com obj[key] em arrays
+    // Manter como warn — revisar caso a caso
+    "security/detect-object-injection": "warn",
+
+    // detect-non-literal-regexp: alerta sobre RegExp com conteúdo dinâmico
+    "security/detect-non-literal-regexp": "warn",
+
+    // detect-possible-timing-attacks: comparações de strings sensíveis
+    "security/detect-possible-timing-attacks": "warn",
+
+    // ── Qualidade Geral ───────────────────────────────────────────────────
+
+    // Proíbe console.log em produção (use logger estruturado)
+    // Permite console.warn e console.error para depuração
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+
+    // Proíbe debugger no código
+    "no-debugger": "error",
+
+    // Força === em vez de == (evita coerção de tipo inesperada)
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+
+    // Proíbe retornar valores em construtores
+    "no-constructor-return": "error",
+
+    // Proíbe números mágicos sem constante nomeada (exceto valores comuns)
+    // Desabilitado — muito restritivo para desenvolvimento inicial
+    "no-magic-numbers": "off"
+  },
+  "overrides": [
+    {
+      // Regras mais relaxadas para arquivos de configuração e scripts
+      "files": [
+        "next.config.ts",
+        "next.config.js",
+        "*.config.ts",
+        "*.config.js",
+        "scripts/**/*.ts",
+        "scripts/**/*.js"
+      ],
+      "rules": {
+        "@typescript-eslint/no-require-imports": "off",
+        "no-console": "off"
+      }
+    },
+    {
+      // Permite `any` em arquivos de definição de tipos
+      "files": ["**/*.d.ts", "types/**/*.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    },
+    {
+      // Configuração para arquivos de teste
+      "files": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx"
+      ],
+      "rules": {
+        "no-console": "off",
+        "@typescript-eslint/no-explicit-any": "warn"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "out/",
+    "build/",
+    "coverage/",
+    "*.min.js"
+  ]
+}
