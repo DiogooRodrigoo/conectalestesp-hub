@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { createLead, getLeads, updateLead } from "@/lib/supabase/hub";
 import type { LeadInsert, LeadSource, LeadStatus } from "@/types/database";
 

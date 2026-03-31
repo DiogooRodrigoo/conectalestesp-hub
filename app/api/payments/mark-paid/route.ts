@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { markPaymentAsPaid } from "@/lib/supabase/hub";
 
 export async function PATCH(req: NextRequest) {

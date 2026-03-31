@@ -225,7 +225,7 @@ const FooterRight = styled.div`display: flex; gap: 8px;`;
 // Form primitives
 const FieldGroup = styled.div`display: flex; flex-direction: column; gap: 16px;`;
 const Row2 = styled.div`display: grid; grid-template-columns: 1fr 1fr; gap: 12px;`;
-const Row3 = styled.div`display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;`;
+const _Row3 = styled.div`display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;`;
 
 const FieldLabel = styled.label`font-size: 12.5px; font-weight: 500; color: var(--color-text-muted); display: block; margin-bottom: 6px;`;
 
@@ -424,7 +424,7 @@ export default function NovoClienteWizard({ onClose, onSuccess }: Props) {
 
   // Current step index in visibleSteps
   const currentIdx  = visibleSteps.findIndex((s) => s.id === step);
-  const currentStep = visibleSteps[currentIdx];
+  const _currentStep = visibleSteps[currentIdx];
   const isFirst     = currentIdx === 0;
   const isLast      = currentIdx === visibleSteps.length - 1;
 
@@ -961,7 +961,7 @@ export default function NovoClienteWizard({ onClose, onSuccess }: Props) {
           </HeaderRow>
 
           <StepperRow>
-            {ALL_STEPS.map((s, i) => {
+            {ALL_STEPS.map((s, _i) => {
               const visible  = !s.conditional || temMarqueJa;
               const vIdx     = visibleSteps.findIndex((vs) => vs.id === s.id);
               const curVIdx  = visibleSteps.findIndex((vs) => vs.id === step);

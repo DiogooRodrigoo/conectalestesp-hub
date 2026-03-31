@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Hub Queries — funções de acesso ao banco reutilizáveis
  *
@@ -49,7 +50,6 @@ export async function getClientById(id: string): Promise<ClientWithDetails | nul
 /** Cria um novo cliente */
 export async function createClient(input: ClientInsert): Promise<Client> {
   const supabase = await createServerSupabaseAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await supabase
     .from("clients")
     .insert(input as any)
@@ -63,7 +63,6 @@ export async function createClient(input: ClientInsert): Promise<Client> {
 /** Adiciona um produto ao cliente */
 export async function addClientProduct(input: ClientProductInsert) {
   const supabase = await createServerSupabaseAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await supabase
     .from("client_products")
     .insert(input as any)
@@ -167,7 +166,6 @@ export async function getMonthPayments(): Promise<PaymentWithClient[]> {
 /** Cria um pagamento */
 export async function createPayment(input: PaymentInsert) {
   const supabase = await createServerSupabaseAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await supabase
     .from("payments")
     .insert(input as any)
