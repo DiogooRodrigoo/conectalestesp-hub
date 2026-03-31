@@ -124,85 +124,92 @@ const ALL_STEPS: StepConfig[] = [
 // ─── Animations ───────────────────────────────────────────────────────────────
 
 const fadeIn = keyframes`from { opacity: 0; } to { opacity: 1; }`;
-const slideUp = keyframes`from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); }`;
+const slideUp = keyframes`
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+`;
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 
 const Overlay = styled.div`
-  position: fixed; inset: 0; z-index: 1000;
-  background: rgba(0, 0, 0, 0.7);
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center;
   padding: 20px;
-  animation: ${fadeIn} 0.2s ease;
+  animation: ${fadeIn} 0.18s ease;
 `;
 
 const Sheet = styled.div`
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  width: 100%; max-width: 680px;
-  max-height: 90vh;
+  width: 100%; max-width: 620px;
+  max-height: calc(100dvh - 40px);
   display: flex; flex-direction: column;
-  animation: ${slideUp} 0.25s ease;
+  animation: ${slideUp} 0.24s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.7),
+              0 0 0 1px rgba(255, 255, 255, 0.04);
 `;
 
 const SheetHeader = styled.div`
-  padding: 20px 24px 0;
-  border-bottom: 1px solid var(--color-border);
+  padding: 22px 24px 0;
   flex-shrink: 0;
 `;
 
 const HeaderRow = styled.div`
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 20px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; margin-bottom: 18px;
 `;
 
-const Title = styled.h2`font-size: 17px; font-weight: 700; color: var(--color-text);`;
-const Subtitle = styled.p`font-size: 13px; color: var(--color-text-muted); margin-top: 2px;`;
+const HeaderText = styled.div`flex: 1; min-width: 0;`;
+
+const Title = styled.h2`
+  font-size: 16px; font-weight: 700;
+  color: var(--color-text); letter-spacing: -0.3px;
+`;
+const Subtitle = styled.p`
+  font-size: 13px; color: var(--color-text-muted); margin-top: 4px; line-height: 1.5;
+`;
 
 const CloseBtn = styled.button`
-  width: 32px; height: 32px; border-radius: var(--radius-sm);
+  width: 30px; height: 30px; border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
-  color: var(--color-text-muted); border: 1px solid var(--color-border);
-  transition: all 0.15s;
+  color: var(--color-text-muted); flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
   &:hover { background: var(--color-surface-2); color: var(--color-text); }
 `;
 
-// Stepper
-const StepperRow = styled.div`
-  display: flex; gap: 0; overflow-x: auto;
-  padding-bottom: 0;
-  scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
+// Progress bar
+const ProgressWrap = styled.div`
+  padding: 0 24px 20px;
+  border-bottom: 1px solid var(--color-border);
 `;
 
-const StepBtn = styled.button<{ $active: boolean; $done: boolean; $visible: boolean }>`
-  display: ${({ $visible }) => ($visible ? "flex" : "none")};
-  align-items: center; gap: 7px;
-  padding: 10px 14px;
-  font-size: 12.5px;
-  font-weight: ${({ $active }) => ($active ? "600" : "400")};
-  color: ${({ $active, $done }) =>
-    $active ? "var(--color-primary)" : $done ? "var(--color-success)" : "var(--color-text-muted)"};
-  border-bottom: 2px solid ${({ $active }) => ($active ? "var(--color-primary)" : "transparent")};
-  margin-bottom: -1px;
-  white-space: nowrap;
-  transition: all 0.15s;
-  cursor: ${({ $active, $done }) => ($active ? "default" : $done ? "pointer" : "default")};
+const ProgressBar = styled.div`
+  display: flex; gap: 4px; margin-bottom: 10px;
 `;
 
-const StepIcon = styled.div<{ $active: boolean; $done: boolean }>`
-  width: 20px; height: 20px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 800;
-  background: ${({ $active, $done }) =>
-    $done ? "rgba(34,197,94,0.15)" : $active ? "rgba(249,115,22,0.15)" : "var(--color-surface-2)"};
-  color: ${({ $active, $done }) =>
-    $done ? "var(--color-success)" : $active ? "var(--color-primary)" : "var(--color-text-muted)"};
-  border: 1px solid ${({ $active, $done }) =>
-    $done ? "rgba(34,197,94,0.3)" : $active ? "rgba(249,115,22,0.3)" : "var(--color-border)"};
-  flex-shrink: 0;
+const ProgressSegment = styled.div<{ $done: boolean; $active: boolean }>`
+  flex: 1; height: 3px; border-radius: 99px;
+  background: ${({ $done, $active }) =>
+    $done || $active ? "var(--color-primary)" : "var(--color-border)"};
+  opacity: ${({ $active, $done }) => ($done ? 1 : $active ? 0.6 : 0.3)};
+  transition: background 0.3s ease, opacity 0.3s ease;
+`;
+
+const StepMeta = styled.div`
+  display: flex; align-items: center; justify-content: space-between;
+`;
+
+const StepCounter = styled.span`
+  font-size: 11.5px; font-weight: 600; color: var(--color-primary); letter-spacing: 0.3px;
+`;
+
+const StepTitle = styled.span`
+  font-size: 11.5px; color: var(--color-text-muted);
 `;
 
 // Body
@@ -983,38 +990,29 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
       <Sheet>
         <SheetHeader>
           <HeaderRow>
-            <div>
+            <HeaderText>
               <Title>{stepTitles[step].title}</Title>
               <Subtitle>{stepTitles[step].subtitle}</Subtitle>
-            </div>
+            </HeaderText>
             <CloseBtn onClick={onClose}><X size={16} weight="bold" /></CloseBtn>
           </HeaderRow>
-
-          <StepperRow>
-            {ALL_STEPS.map((s, _i) => {
-              const visible  = !s.conditional || temMarqueJa;
-              const vIdx     = visibleSteps.findIndex((vs) => vs.id === s.id);
-              const curVIdx  = visibleSteps.findIndex((vs) => vs.id === step);
-              const isDone   = visible && vIdx < curVIdx;
-              const isActive = step === s.id;
-              const Icon     = s.icon;
-              return (
-                <StepBtn
-                  key={s.id}
-                  $active={isActive}
-                  $done={isDone}
-                  $visible={visible}
-                  onClick={() => isDone && setStep(s.id)}
-                >
-                  <StepIcon $active={isActive} $done={isDone}>
-                    {isDone ? <Check size={10} weight="bold" /> : <Icon size={10} weight={isActive ? "fill" : "regular"} />}
-                  </StepIcon>
-                  {s.label}
-                </StepBtn>
-              );
-            })}
-          </StepperRow>
         </SheetHeader>
+
+        <ProgressWrap>
+          <ProgressBar>
+            {visibleSteps.map((s) => (
+              <ProgressSegment
+                key={s.id}
+                $done={visibleSteps.findIndex((vs) => vs.id === step) > visibleSteps.findIndex((vs) => vs.id === s.id)}
+                $active={step === s.id}
+              />
+            ))}
+          </ProgressBar>
+          <StepMeta>
+            <StepCounter>Passo {currentIdx + 1} de {visibleSteps.length}</StepCounter>
+            <StepTitle>{visibleSteps[currentIdx]?.label}</StepTitle>
+          </StepMeta>
+        </ProgressWrap>
 
         <SheetBody>{renderStep()}</SheetBody>
 
