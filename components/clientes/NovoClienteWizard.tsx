@@ -396,6 +396,7 @@ const Tag = styled.span`
 interface Props {
   onClose: () => void;
   onSuccess: () => void;
+  initialData?: Partial<WizardData>;
 }
 
 // ─── Wizard Component ─────────────────────────────────────────────────────────
@@ -409,8 +410,8 @@ const INITIAL: WizardData = {
   profissionais: [],
 };
 
-export default function NovoClienteWizard({ onClose, onSuccess }: Props) {
-  const [data, setData] = useState<WizardData>(INITIAL);
+export default function NovoClienteWizard({ onClose, onSuccess, initialData }: Props) {
+  const [data, setData] = useState<WizardData>({ ...INITIAL, ...initialData });
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
 

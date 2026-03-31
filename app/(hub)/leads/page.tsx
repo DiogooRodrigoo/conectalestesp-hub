@@ -25,6 +25,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
+import NovoClienteWizard from "@/components/clientes/NovoClienteWizard";
 import type { LeadResult } from "@/app/api/leads/search/route";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -779,6 +780,23 @@ export default function LeadsPage() {
   }
 
   const [savingDetail, setSavingDetail] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardInitialData, setWizardInitialData] = useState<{
+    nome?: string; telefone?: string; segmento?: string; bairro?: string;
+  }>({});
+
+  async function handleConverter() {
+    if (!selectedLead) return;
+    const prefill = {
+      nome:      selectedLead.nome,
+      telefone:  selectedLead.telefone ?? "",
+      segmento:  selectedLead.segmento,
+      bairro:    selectedLead.bairro,
+    };
+    await saveDetail();
+    setWizardInitialData(prefill);
+    setWizardOpen(true);
+  }
 
   async function saveDetail() {
     if (!selectedLead) return;
@@ -1117,7 +1135,7 @@ export default function LeadsPage() {
               <Button
                 variant="ghost"
                 icon={<UserCirclePlus size={16} />}
-                onClick={() => { saveDetail(); }}
+                onClick={handleConverter}
                 style={{ marginRight: "auto" }}
               >
                 Converter em Cliente
@@ -1299,6 +1317,14 @@ export default function LeadsPage() {
           </div>
         </ModalForm>
       </Modal>
+
+      {wizardOpen && (
+        <NovoClienteWizard
+          initialData={wizardInitialData}
+          onClose={() => setWizardOpen(false)}
+          onSuccess={() => setWizardOpen(false)}
+        />
+      )}
     </PageWrapper>
   );
 }
