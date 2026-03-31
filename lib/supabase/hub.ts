@@ -49,10 +49,10 @@ export async function getClientById(id: string): Promise<ClientWithDetails | nul
 
 /** Cria um novo cliente */
 export async function createClient(input: ClientInsert): Promise<Client> {
-  const supabase = await createServerSupabaseAdminClient();
+  const supabase = await createServerSupabaseAdminClient() as any;
   const { data, error } = await supabase
     .from("clients")
-    .insert(input as any)
+    .insert(input)
     .select()
     .single();
 
@@ -79,10 +79,10 @@ export async function updateClient(
 
 /** Adiciona um produto ao cliente */
 export async function addClientProduct(input: ClientProductInsert) {
-  const supabase = await createServerSupabaseAdminClient();
+  const supabase = await createServerSupabaseAdminClient() as any;
   const { data, error } = await supabase
     .from("client_products")
-    .insert(input as any)
+    .insert(input)
     .select()
     .single();
 
@@ -182,10 +182,10 @@ export async function getMonthPayments(): Promise<PaymentWithClient[]> {
 
 /** Cria um pagamento */
 export async function createPayment(input: PaymentInsert) {
-  const supabase = await createServerSupabaseAdminClient();
+  const supabase = await createServerSupabaseAdminClient() as any;
   const { data, error } = await supabase
     .from("payments")
-    .insert(input as any)
+    .insert(input)
     .select()
     .single();
 
