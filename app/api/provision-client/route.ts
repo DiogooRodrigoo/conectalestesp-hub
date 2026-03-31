@@ -250,9 +250,9 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. Atualizar Hub client com business_id (usa cliente do Hub)
-    const { error: updateError } = await hubClient
+    const { error: updateError } = await (hubClient as any)
       .from("clients")
-      .update({ business_id: businessId } as any)
+      .update({ business_id: businessId })
       .eq("id", body.client_id);
 
     if (updateError) {
