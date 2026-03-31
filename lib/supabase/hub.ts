@@ -65,10 +65,10 @@ export async function updateClient(
   id: string,
   input: Partial<Pick<Client, "name" | "owner_name" | "owner_email" | "phone" | "segment" | "neighborhood" | "status" | "notes">>
 ): Promise<Client> {
-  const supabase = await createServerSupabaseAdminClient();
+  const supabase = await createServerSupabaseAdminClient() as any;
   const { data, error } = await supabase
     .from("clients")
-    .update(input as any)
+    .update(input)
     .eq("id", id)
     .select()
     .single();
