@@ -29,14 +29,37 @@
   - [x] Step 6: Revisão com resumo completo + MRR calculado
   - [x] Salva cliente + produtos no Supabase ao confirmar
 
-- [ ] **API de Provisionamento** `app/api/provision-client/route.ts`
-  - [ ] Cria `auth.user` no Supabase do Marque Já
-  - [ ] Cria registro em `businesses`
-  - [ ] Insere `business_hours`, `services`, `professionals`, `professional_services`
-  - [ ] Salva `business_id` + `slug` na tabela `clients` do Hub
+- [x] **API de Provisionamento** `app/api/provision-client/route.ts`
+  - [x] Cria `auth.user` no Supabase do Marque Já (via `createServerSupabaseAdminClient`)
+  - [x] Cria registro em `businesses` com slug, cor, WhatsApp, endereço
+  - [x] Insere `business_hours` (usa defaults seg-sáb 09h-18h se não informado)
+  - [x] Insere `services` com nome, preço, duração
+  - [x] Insere `professionals` + vincula `professional_services` por índice
+  - [x] Atualiza `business_id` na tabela `clients` do Hub
+  - [x] Retorna `slug` + `temp_password` para exibição no Wizard
 
-- [ ] **Alterações no Cliente** (ficha do cliente com ações reais)
-  - [ ] Editar dados do negócio (nome, WhatsApp, cor)
+- [x] **`lib/supabase/server.ts`** — adicionada `createServerSupabaseAdminClient` (service role para acessar Marque Já)
+- [x] **`lib/supabase/hub.ts`** — adicionadas funções `getClientById` e `updateClient`
+- [x] **`app/api/clients/[id]/route.ts`** — PATCH para atualizar dados do cliente (nome, dono, email, phone, segmento, bairro, status, notas)
+
+- [x] **Ficha do Cliente** `app/(hub)/clientes/[id]/page.tsx` + `components/clientes/ClienteDetailView.tsx`
+  - [x] Carrega dados reais do Supabase via `getClientById` (cliente + produtos + pagamentos)
+  - [x] Exibe dados do negócio com badges de status e segmento
+  - [x] Modal de edição inline dos dados do cliente (chama `PATCH /api/clients/[id]`)
+  - [x] Lista de produtos contratados com valor e status
+  - [x] Histórico de pagamentos (últimos do Supabase)
+  - [x] Link direto para o painel Marque Já quando `business_id` está presente
+
+- [x] **Wizard "Novo Cliente"** — integração com provisionamento
+  - [x] Após salvar cliente no Hub, chama `/api/provision-client` se produto `marque_já` está ativo
+  - [x] Exibe resultado: slug, senha provisória e link para o painel do cliente
+  - [x] Erros de provisionamento não bloqueiam criação do cliente no Hub
+
+- [x] **Leads — Botão "Converter em Cliente"** `app/(hub)/leads/page.tsx`
+  - [x] Botão no modal de detalhes do lead abre Wizard preenchido com dados do lead
+  - [x] Ao confirmar wizard, atualiza status do lead para "won"
+
+- [ ] **Alterações no Cliente** (ações adicionais na ficha)
   - [ ] Adicionar / editar / remover serviços
   - [ ] Adicionar / editar / remover profissionais
   - [ ] Editar horários de funcionamento

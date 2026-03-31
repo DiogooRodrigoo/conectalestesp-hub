@@ -215,6 +215,8 @@ const StepTitle = styled.span`
 // Body
 const SheetBody = styled.div`
   flex: 1; overflow-y: auto; padding: 24px;
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
 `;
 
 // Footer
@@ -230,8 +232,8 @@ const FooterLeft  = styled.div`display: flex; gap: 8px;`;
 const FooterRight = styled.div`display: flex; gap: 8px;`;
 
 // Form primitives
-const FieldGroup = styled.div`display: flex; flex-direction: column; gap: 16px;`;
-const Row2 = styled.div`display: grid; grid-template-columns: 1fr 1fr; gap: 12px;`;
+const FieldGroup = styled.div`display: flex; flex-direction: column; gap: 18px;`;
+const Row2 = styled.div`display: grid; grid-template-columns: 1fr 1fr; gap: 14px;`;
 const _Row3 = styled.div`display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;`;
 
 const FieldLabel = styled.label`font-size: 12.5px; font-weight: 500; color: var(--color-text-muted); display: block; margin-bottom: 6px;`;
@@ -246,8 +248,9 @@ const StyledSelect = styled.select`
 `;
 
 const SectionTitle = styled.p`
-  font-size: 11px; font-weight: 700; color: var(--color-text-muted);
-  text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px; margin-top: 4px;
+  font-size: 12px; font-weight: 600; color: var(--color-text-muted);
+  letter-spacing: 0; padding-bottom: 12px; margin-top: 8px;
+  border-bottom: 1px solid var(--color-border);
 `;
 
 // Product cards

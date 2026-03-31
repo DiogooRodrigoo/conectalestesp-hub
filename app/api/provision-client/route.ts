@@ -1,6 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { createServerSupabaseAdminClient } from "@/lib/supabase/server";
+
+// ─── Clientes Supabase ────────────────────────────────────────────────────────
+
+// Cliente do Marque Já — sem tipo rígido pois o Hub não contém os types do Marque Já
+function createMarqueJaClient() {
+  const url = process.env.MARQUE_JA_SUPABASE_URL;
+  const key = process.env.MARQUE_JA_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error(
+      "MARQUE_JA_SUPABASE_URL e MARQUE_JA_SERVICE_ROLE_KEY são obrigatórios"
+    );
+  }
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -16,7 +33,9 @@ function toSlug(name: string): string {
 
 function generatePassword(): string {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#";
-  return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  return Array.from({ length: 10 }, () =>
+    chars[Math.floor(Math.random() * chars.length)]
+  ).join("");
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -40,15 +59,15 @@ interface Profissional {
 }
 
 interface ProvisionBody {
-  client_id:     string;
-  email:         string;
-  nome:          string;
-  slug?:         string;
+  client_id:      string;
+  email:          string;
+  nome:           string;
+  slug?:          string;
   primary_color?: string;
   phone_whatsapp?: string;
   neighborhood?:  string;
-  horarios?:     Horario[];
-  servicos?:     Servico[];
+  horarios?:      Horario[];
+  servicos?:      Servico[];
   profissionais?: Profissional[];
 }
 
@@ -65,11 +84,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabase = await createServerSupabaseAdminClient();
-    const slug = (body.slug?.trim() || toSlug(body.nome)).replace(/[^a-z0-9-]/g, "");
+    // marqueJa → Supabase do Marque Já (tabelas businesses, services, etc.)
+    // hubClient → Supabase do Hub (tabela clients)
+    const marqueJa = createMarqueJaClient();
+    const hubClient = await createServerSupabaseAdminClient();
 
-    // Verifica se slug já existe
-    const { data: slugCheck } = await supabase
+    const slug = (body.slug?.trim() || toSlug(body.nome)).replace(
+      /[^a-z0-9-]/g,
+      ""
+    );
+
+    // Verifica se slug já existe no Marque Já
+    const { data: slugCheck } = await marqueJa
       .from("businesses")
       .select("id")
       .eq("slug", slug)
@@ -82,28 +108,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Criar auth user para o dono do negócio
+    // 1. Criar auth user no Marque Já
     const tempPassword = generatePassword();
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email:     body.email,
-      password:  tempPassword,
-      email_confirm: true,
-    });
+    const { data: authData, error: authError } =
+      await marqueJa.auth.admin.createUser({
+        email: body.email,
+        password: tempPassword,
+        email_confirm: true,
+      });
 
     if (authError) {
-      // Se e-mail já existe, busca o usuário existente
       if (!authError.message.includes("already")) {
-        return NextResponse.json({ error: `Auth: ${authError.message}` }, { status: 400 });
+        return NextResponse.json(
+          { error: `Auth: ${authError.message}` },
+          { status: 400 }
+        );
       }
-      // usuário já existe — não cria duplicado, continua com listagem
+      // e-mail já existe — continua (não cria duplicado)
     }
 
     const ownerId = authData?.user?.id;
     if (!ownerId) {
-      return NextResponse.json({ error: "Não foi possível obter o owner_id do usuário." }, { status: 500 });
+      return NextResponse.json(
+        { error: "Não foi possível obter o owner_id do usuário." },
+        { status: 500 }
+      );
     }
 
-    // 2. Criar business
+    // 2. Criar business no Marque Já
     const businessInsert: Record<string, any> = {
       owner_id:      ownerId,
       slug,
@@ -121,14 +153,17 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    const { data: business, error: bizError } = await supabase
+    const { data: business, error: bizError } = await marqueJa
       .from("businesses")
       .insert(businessInsert)
       .select("id")
       .single();
 
     if (bizError || !business) {
-      return NextResponse.json({ error: `Business: ${bizError?.message}` }, { status: 500 });
+      return NextResponse.json(
+        { error: `Business: ${bizError?.message}` },
+        { status: 500 }
+      );
     }
 
     const businessId: string = business.id;
@@ -136,16 +171,16 @@ export async function POST(req: NextRequest) {
     // 3. Criar horários de funcionamento
     if (body.horarios && body.horarios.length > 0) {
       const horasInsert = body.horarios.map((h) => ({
-        business_id:  businessId,
-        day_of_week:  h.dia,
-        is_open:      h.ativo,
-        open_time:    h.ativo ? `${h.abertura}:00` : "09:00:00",
-        close_time:   h.ativo ? `${h.fechamento}:00` : "18:00:00",
+        business_id: businessId,
+        day_of_week: h.dia,
+        is_open:     h.ativo,
+        open_time:   h.ativo ? `${h.abertura}:00` : "09:00:00",
+        close_time:  h.ativo ? `${h.fechamento}:00` : "18:00:00",
       }));
 
-      const { error: horasError } = await supabase
+      const { error: horasError } = await marqueJa
         .from("business_hours")
-        .insert(horasInsert as any);
+        .insert(horasInsert);
 
       if (horasError) {
         console.error("business_hours insert error:", horasError.message);
@@ -155,12 +190,12 @@ export async function POST(req: NextRequest) {
       const defaultHours = Array.from({ length: 7 }, (_, i) => ({
         business_id: businessId,
         day_of_week: i,
-        is_open:     i !== 0, // domingo fechado
+        is_open:     i !== 0,
         open_time:   "09:00:00",
         close_time:  "18:00:00",
       }));
 
-      await supabase.from("business_hours").insert(defaultHours as any);
+      await marqueJa.from("business_hours").insert(defaultHours);
     }
 
     // 4. Criar serviços → guardar IDs por índice
@@ -169,15 +204,15 @@ export async function POST(req: NextRequest) {
 
     for (let i = 0; i < servicos.length; i++) {
       const s = servicos[i];
-      const { data: svc, error: svcError } = await supabase
+      const { data: svc, error: svcError } = await marqueJa
         .from("services")
         .insert({
-          business_id:  businessId,
-          name:         s.nome,
-          duration_min: s.duracao_min,
-          price_cents:  s.preco_cents,
+          business_id:   businessId,
+          name:          s.nome,
+          duration_min:  s.duracao_min,
+          price_cents:   s.preco_cents,
           display_order: i,
-        } as any)
+        })
         .select("id")
         .single();
 
@@ -191,9 +226,9 @@ export async function POST(req: NextRequest) {
 
     // 5. Criar profissionais + vincular serviços
     for (const prof of body.profissionais ?? []) {
-      const { data: professional, error: profError } = await supabase
+      const { data: professional, error: profError } = await marqueJa
         .from("professionals")
-        .insert({ business_id: businessId, name: prof.nome } as any)
+        .insert({ business_id: businessId, name: prof.nome })
         .select("id")
         .single();
 
@@ -210,12 +245,12 @@ export async function POST(req: NextRequest) {
         }));
 
       if (psInserts.length > 0) {
-        await supabase.from("professional_services").insert(psInserts as any);
+        await marqueJa.from("professional_services").insert(psInserts);
       }
     }
 
-    // 6. Atualizar Hub client com business_id
-    const { error: updateError } = await supabase
+    // 6. Atualizar Hub client com business_id (usa cliente do Hub)
+    const { error: updateError } = await hubClient
       .from("clients")
       .update({ business_id: businessId } as any)
       .eq("id", body.client_id);
@@ -224,12 +259,10 @@ export async function POST(req: NextRequest) {
       console.error("Falha ao atualizar client.business_id:", updateError.message);
     }
 
-    return NextResponse.json({
-      business_id:   businessId,
-      slug,
-      temp_password: tempPassword,
-    }, { status: 201 });
-
+    return NextResponse.json(
+      { business_id: businessId, slug, temp_password: tempPassword },
+      { status: 201 }
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
     return NextResponse.json({ error: message }, { status: 500 });
