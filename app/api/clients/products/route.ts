@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { addClientProduct } from "@/lib/supabase/hub";
 import type { ClientProductInsert } from "@/types/database";
 
