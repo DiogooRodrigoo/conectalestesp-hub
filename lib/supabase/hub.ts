@@ -60,6 +60,23 @@ export async function createClient(input: ClientInsert): Promise<Client> {
   return data as Client;
 }
 
+/** Atualiza dados de um cliente */
+export async function updateClient(
+  id: string,
+  input: Partial<Pick<Client, "name" | "owner_name" | "owner_email" | "phone" | "segment" | "neighborhood" | "status" | "notes">>
+): Promise<Client> {
+  const supabase = await createServerSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("clients")
+    .update(input as any)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw new Error(`updateClient: ${error.message}`);
+  return data as Client;
+}
+
 /** Adiciona um produto ao cliente */
 export async function addClientProduct(input: ClientProductInsert) {
   const supabase = await createServerSupabaseAdminClient();

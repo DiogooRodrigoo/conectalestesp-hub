@@ -16,6 +16,8 @@ import {
 } from "@phosphor-icons/react";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Modal from "@/components/ui/Modal";
 import type { ClientWithDetails, ClientStatus, ProductStatus } from "@/types/database";
 import { formatBRL, PRODUCT_LABELS } from "@/types/database";
 
@@ -262,6 +264,41 @@ const EmptyMsg = styled.p`
   padding: 24px 0;
 `;
 
+const EditForm = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+`;
+
+const EditRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+`;
+
+const EditLabel = styled.label`
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  display: block;
+  margin-bottom: 6px;
+`;
+
+const EditSelect = styled.select`
+  width: 100%;
+  height: 40px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 13.5px;
+  font-family: inherit;
+  padding: 0 12px;
+  outline: none;
+  transition: border-color 0.15s;
+  &:focus { border-color: var(--color-primary); }
+`;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const CLIENT_STATUS_LABELS: Record<ClientStatus, string> = {
@@ -314,14 +351,83 @@ function formatMonthYear(iso: string) {
   });
 }
 
+const SEGMENTOS = [
+  "Barbearia", "Salão de Beleza", "Clínica", "Restaurante",
+  "Lanchonete", "Padaria", "Pet Shop", "Academia",
+  "Loja de Roupas", "Mercado", "Mecânica", "Farmácia", "Outro",
+];
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
   client: ClientWithDetails;
 }
 
+interface EditForm {
+  name: string;
+  owner_name: string;
+  owner_email: string;
+  phone: string;
+  segment: string;
+  neighborhood: string;
+  status: ClientStatus;
+}
+
 export default function ClienteDetailView({ client }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Estado local do cliente para refletir edições sem reload
+  const [localClient, setLocalClient] = useState(client);
+
+  const [editOpen, setEditOpen]   = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editForm, setEditForm]   = useState<EditForm>({
+    name:         localClient.name,
+    owner_name:   localClient.owner_name   ?? "",
+    owner_email:  localClient.owner_email  ?? "",
+    phone:        localClient.phone        ?? "",
+    segment:      localClient.segment      ?? "",
+    neighborhood: localClient.neighborhood ?? "",
+    status:       localClient.status,
+  });
+
+  function openEdit() {
+    setEditForm({
+      name:         localClient.name,
+      owner_name:   localClient.owner_name   ?? "",
+      owner_email:  localClient.owner_email  ?? "",
+      phone:        localClient.phone        ?? "",
+      segment:      localClient.segment      ?? "",
+      neighborhood: localClient.neighborhood ?? "",
+      status:       localClient.status,
+    });
+    setEditOpen(true);
+  }
+
+  async function saveEdit() {
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/clients/${localClient.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name:         editForm.name.trim(),
+          owner_name:   editForm.owner_name.trim()   || null,
+          owner_email:  editForm.owner_email.trim()  || null,
+          phone:        editForm.phone.trim()        || null,
+          segment:      editForm.segment             || null,
+          neighborhood: editForm.neighborhood.trim() || null,
+          status:       editForm.status,
+        }),
+      });
+      if (!res.ok) throw new Error("Erro ao salvar");
+      const updated = await res.json();
+      setLocalClient((prev) => ({ ...prev, ...updated }));
+      setEditOpen(false);
+    } finally {
+      setEditSaving(false);
+    }
+  }
 
   function copyLink(text: string, id: string) {
     navigator.clipboard.writeText(text);
@@ -329,17 +435,16 @@ export default function ClienteDetailView({ client }: Props) {
     setTimeout(() => setCopiedId(null), 2000);
   }
 
-  const hasMarqueJa = client.client_products.some((p) => p.product === "marque_ja");
-  const painelUrl     = client.business_id
-    ? `https://app.marqueja.com.br/${client.business_id}/painel`
+  const hasMarqueJa = localClient.client_products.some((p) => p.product === "marque_ja");
+  const painelUrl     = localClient.business_id
+    ? `https://app.marqueja.com.br/${localClient.business_id}/painel`
     : null;
-  const agendamentoUrl = client.business_id
-    ? `https://app.marqueja.com.br/${client.business_id}`
+  const agendamentoUrl = localClient.business_id
+    ? `https://app.marqueja.com.br/${localClient.business_id}`
     : null;
 
-  // Mapa de product_id → nome do produto (para a coluna de pagamentos)
   const productNameById = Object.fromEntries(
-    client.client_products.map((p) => [p.id, PRODUCT_LABELS[p.product]])
+    localClient.client_products.map((p) => [p.id, PRODUCT_LABELS[p.product]])
   );
 
   return (
@@ -351,12 +456,12 @@ export default function ClienteDetailView({ client }: Props) {
 
       <PageHeader>
         <HeaderLeft>
-          <ClienteTitle>{client.name}</ClienteTitle>
-          <Badge variant={clientStatusVariant(client.status)} dot>
-            {CLIENT_STATUS_LABELS[client.status]}
+          <ClienteTitle>{localClient.name}</ClienteTitle>
+          <Badge variant={clientStatusVariant(localClient.status)} dot>
+            {CLIENT_STATUS_LABELS[localClient.status]}
           </Badge>
         </HeaderLeft>
-        <Button variant="secondary" icon={<PencilSimple size={15} />} size="sm">
+        <Button variant="secondary" icon={<PencilSimple size={15} />} size="sm" onClick={openEdit}>
           Editar
         </Button>
       </PageHeader>
@@ -368,39 +473,39 @@ export default function ClienteDetailView({ client }: Props) {
             <User size={15} weight="fill" />
             Dados Gerais
           </CardTitle>
-          {client.owner_name && (
+          {localClient.owner_name && (
             <InfoRow>
               <InfoIcon><User size={14} /></InfoIcon>
               <div>
                 <InfoLabel>Nome do dono</InfoLabel>
-                <InfoValue>{client.owner_name}</InfoValue>
+                <InfoValue>{localClient.owner_name}</InfoValue>
               </div>
             </InfoRow>
           )}
-          {client.phone && (
+          {localClient.phone && (
             <InfoRow>
               <InfoIcon><Phone size={14} /></InfoIcon>
               <div>
                 <InfoLabel>Telefone</InfoLabel>
-                <InfoValue>{client.phone}</InfoValue>
+                <InfoValue>{localClient.phone}</InfoValue>
               </div>
             </InfoRow>
           )}
-          {client.neighborhood && (
+          {localClient.neighborhood && (
             <InfoRow>
               <InfoIcon><MapPin size={14} /></InfoIcon>
               <div>
                 <InfoLabel>Bairro</InfoLabel>
-                <InfoValue>{client.neighborhood}</InfoValue>
+                <InfoValue>{localClient.neighborhood}</InfoValue>
               </div>
             </InfoRow>
           )}
-          {client.segment && (
+          {localClient.segment && (
             <InfoRow>
               <InfoIcon><Tag size={14} /></InfoIcon>
               <div>
                 <InfoLabel>Segmento</InfoLabel>
-                <InfoValue>{client.segment}</InfoValue>
+                <InfoValue>{localClient.segment}</InfoValue>
               </div>
             </InfoRow>
           )}
@@ -408,7 +513,7 @@ export default function ClienteDetailView({ client }: Props) {
             <InfoIcon><CalendarBlank size={14} /></InfoIcon>
             <div>
               <InfoLabel>Cliente desde</InfoLabel>
-              <InfoValue>{formatDate(client.created_at)}</InfoValue>
+              <InfoValue>{formatDate(localClient.created_at)}</InfoValue>
             </div>
           </InfoRow>
         </Card>
@@ -419,10 +524,10 @@ export default function ClienteDetailView({ client }: Props) {
             <Tag size={15} weight="fill" />
             Produtos Contratados
           </CardTitle>
-          {client.client_products.length === 0 ? (
+          {localClient.client_products.length === 0 ? (
             <EmptyMsg>Nenhum produto cadastrado</EmptyMsg>
           ) : (
-            client.client_products.map((p) => (
+            localClient.client_products.map((p) => (
               <ProdutoRow key={p.id}>
                 <ProdutoInfo>
                   <ProdutoNome>{PRODUCT_LABELS[p.product]}</ProdutoNome>
@@ -442,7 +547,7 @@ export default function ClienteDetailView({ client }: Props) {
         </Card>
       </SectionGrid>
 
-      {/* Links do Marque Já — só exibe se o cliente tem Marque Já e business_id */}
+      {/* Links do Marque Já */}
       {hasMarqueJa && painelUrl && agendamentoUrl && (
         <CardFull>
           <CardTitle>Links do Marque Já</CardTitle>
@@ -473,7 +578,7 @@ export default function ClienteDetailView({ client }: Props) {
           <CalendarBlank size={15} weight="fill" />
           Histórico de Pagamentos
         </CardTitle>
-        {client.payments.length === 0 ? (
+        {localClient.payments.length === 0 ? (
           <EmptyMsg>Nenhum pagamento registrado</EmptyMsg>
         ) : (
           <PagTable>
@@ -483,7 +588,7 @@ export default function ClienteDetailView({ client }: Props) {
               <PagHeaderCell>Vencimento</PagHeaderCell>
               <PagHeaderCell>Status</PagHeaderCell>
             </PagHeader>
-            {client.payments.map((pag) => (
+            {localClient.payments.map((pag) => (
               <PagRow key={pag.id}>
                 <PagCell style={{ fontWeight: 600 }}>
                   {formatMonthYear(pag.due_date)}
@@ -506,6 +611,88 @@ export default function ClienteDetailView({ client }: Props) {
           </PagTable>
         )}
       </CardFull>
+
+      {/* Modal de Edição */}
+      <Modal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Editar Cliente"
+        size="md"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button
+              variant="primary"
+              loading={editSaving}
+              disabled={!editForm.name.trim()}
+              onClick={saveEdit}
+            >
+              Salvar
+            </Button>
+          </>
+        }
+      >
+        <EditForm>
+          <Input
+            label="Nome do estabelecimento *"
+            value={editForm.name}
+            onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+            fullWidth
+          />
+          <EditRow>
+            <Input
+              label="Nome do dono"
+              value={editForm.owner_name}
+              onChange={(e) => setEditForm((f) => ({ ...f, owner_name: e.target.value }))}
+              fullWidth
+            />
+            <Input
+              label="WhatsApp"
+              value={editForm.phone}
+              onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+              fullWidth
+            />
+          </EditRow>
+          <EditRow>
+            <div>
+              <EditLabel>Segmento</EditLabel>
+              <EditSelect
+                value={editForm.segment}
+                onChange={(e) => setEditForm((f) => ({ ...f, segment: e.target.value }))}
+              >
+                <option value="">— Selecione —</option>
+                {SEGMENTOS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </EditSelect>
+            </div>
+            <Input
+              label="Bairro"
+              value={editForm.neighborhood}
+              onChange={(e) => setEditForm((f) => ({ ...f, neighborhood: e.target.value }))}
+              fullWidth
+            />
+          </EditRow>
+          <EditRow>
+            <Input
+              label="E-mail"
+              value={editForm.owner_email}
+              onChange={(e) => setEditForm((f) => ({ ...f, owner_email: e.target.value }))}
+              fullWidth
+            />
+            <div>
+              <EditLabel>Status</EditLabel>
+              <EditSelect
+                value={editForm.status}
+                onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value as ClientStatus }))}
+              >
+                <option value="active">Ativo</option>
+                <option value="trial">Trial</option>
+                <option value="inactive">Inativo</option>
+                <option value="cancelled">Cancelado</option>
+              </EditSelect>
+            </div>
+          </EditRow>
+        </EditForm>
+      </Modal>
     </PageWrapper>
   );
 }

@@ -414,6 +414,7 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
   const [data, setData] = useState<WizardData>({ ...INITIAL, ...initialData });
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [provisionResult, setProvisionResult] = useState<{ slug: string; temp_password: string } | null>(null);
 
   // temp state for add forms
   const [newServico,    setNewServico]    = useState({ nome: "", preco: "", duracao: "" });
@@ -546,8 +547,36 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
         });
       }
 
-      // 3. Provisionar Marque Já (futuro — dados coletados mas API não implementada ainda)
-      // await fetch("/api/provision-client", { ... })
+      // 3. Provisionar Marque Já (se tem produto marque_ja e e-mail informado)
+      const temMarqueJa = data.produtos.some((p) => p.product === "marque_ja");
+      if (temMarqueJa && data.email.trim()) {
+        const provRes = await fetch("/api/provision-client", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            client_id:     client.id,
+            email:         data.email.trim(),
+            nome:          data.nome.trim(),
+            slug:          data.slug.trim() || undefined,
+            primary_color: data.tema_cor,
+            phone_whatsapp: data.telefone.trim() || undefined,
+            neighborhood:  data.bairro.trim()   || undefined,
+            horarios:      data.horarios,
+            servicos:      data.servicos,
+            profissionais: data.profissionais,
+          }),
+        });
+
+        if (provRes.ok) {
+          const prov = await provRes.json();
+          setProvisionResult({ slug: prov.slug, temp_password: prov.temp_password });
+          return; // não chama onSuccess() ainda — aguarda o usuário fechar o modal de credenciais
+        } else {
+          const err = await provRes.json();
+          console.error("Provisionamento falhou:", err.error);
+          // Não bloqueia — cliente foi criado no Hub, provisionamento pode ser refeito
+        }
+      }
 
       onSuccess();
     } catch (err) {
@@ -1013,6 +1042,59 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
           </FooterRight>
         </SheetFooter>
       </Sheet>
+
+      {/* Modal de credenciais Marque Já */}
+      {provisionResult && (
+        <Overlay onClick={() => { setProvisionResult(null); onSuccess(); }} style={{ zIndex: 110 }}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--color-surface)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-lg)",
+              padding: "32px",
+              maxWidth: 420,
+              width: "90%",
+            }}
+          >
+            <div style={{ marginBottom: 20 }}>
+              <p style={{ fontSize: 18, fontWeight: 700, color: "var(--color-text)", marginBottom: 4 }}>
+                ✅ Cliente provisionado!
+              </p>
+              <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
+                Conta Marque Já criada com sucesso. Anote e envie as credenciais ao cliente.
+              </p>
+            </div>
+            <div style={{ background: "var(--color-surface-2)", borderRadius: "var(--radius-md)", padding: 16, marginBottom: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+              <div>
+                <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 2 }}>Link de agendamento</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--color-primary)" }}>
+                  app.marqueja.com.br/{provisionResult.slug}
+                </p>
+              </div>
+              <div>
+                <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 2 }}>Senha temporária</p>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text)", letterSpacing: 2 }}>
+                  {provisionResult.temp_password}
+                </p>
+              </div>
+            </div>
+            <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 20 }}>
+              O cliente deve alterar a senha no primeiro acesso em app.marqueja.com.br/{provisionResult.slug}/painel
+            </p>
+            <button
+              onClick={() => { setProvisionResult(null); onSuccess(); }}
+              style={{
+                width: "100%", height: 40, borderRadius: "var(--radius-sm)",
+                background: "var(--color-primary)", color: "#fff",
+                fontWeight: 600, fontSize: 14, cursor: "pointer",
+              }}
+            >
+              Fechar
+            </button>
+          </div>
+        </Overlay>
+      )}
     </Overlay>
   );
 }
