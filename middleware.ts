@@ -19,26 +19,29 @@ export async function middleware(request: NextRequest) {
   });
 
   // ─── Cliente Supabase SSR ──────────────────────────────────────────────────
-  // O createServerClient com callbacks de cookie é o padrão oficial do
-  // @supabase/ssr para Next.js middleware. Ele renova tokens automaticamente.
+  // Guard: sem as variáveis de ambiente o middleware não pode funcionar.
+  // Retorna a response padrão para não travar a aplicação inteira.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("[middleware] Variáveis NEXT_PUBLIC_SUPABASE_URL ou NEXT_PUBLIC_SUPABASE_ANON_KEY não configuradas.");
+    return supabaseResponse;
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          // Primeiro seta na request (para que a rota atual veja os cookies)
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-
-          // Recria a response com os cookies atualizados
           supabaseResponse = NextResponse.next({ request });
-
-          // Seta na response (para que o browser receba os cookies novos)
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -48,15 +51,14 @@ export async function middleware(request: NextRequest) {
   );
 
   // ─── Verificação de sessão ─────────────────────────────────────────────────
-  // IMPORTANTE: Usar getUser() e não getSession() — getUser() faz validação
-  // server-side com a Supabase Auth API, enquanto getSession() apenas lê
-  // o JWT local sem verificar com o servidor (inseguro para decisões de auth).
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  const isAuthenticated = !authError && user !== null;
+  let isAuthenticated = false;
+  try {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    isAuthenticated = !authError && user !== null;
+  } catch {
+    // Se o Supabase não responder, trata como não autenticado
+    isAuthenticated = false;
+  }
   const isPublicRoute = PUBLIC_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );

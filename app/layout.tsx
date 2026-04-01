@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Hub | Conecta Leste SP",
   description: "Painel interno da agência Conecta Leste SP",
+  icons: {
+    icon: "/conecta-logo.jpeg",
+  },
 };
 
 export default function RootLayout({

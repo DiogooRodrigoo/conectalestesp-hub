@@ -273,7 +273,7 @@ export default function ConfiguracoesPage() {
             <IntegrationIcon>MJ</IntegrationIcon>
             <IntegrationInfo>
               <IntegrationName>Marque Já</IntegrationName>
-              <IntegrationUrl>https://app.marqueja.com.br</IntegrationUrl>
+              <IntegrationUrl>https://marqueja.conectalestesp.com.br</IntegrationUrl>
               <IntegrationStatus $connected={testResult !== "err"}>
                 {testResult === "err" ? (
                   <><XCircle size={13} weight="fill" /> Sem conexão</>

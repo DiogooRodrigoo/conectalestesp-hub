@@ -437,10 +437,10 @@ export default function ClienteDetailView({ client }: Props) {
 
   const hasMarqueJa = localClient.client_products.some((p) => p.product === "marque_ja");
   const painelUrl     = localClient.business_id
-    ? `https://app.marqueja.com.br/${localClient.business_id}/painel`
+    ? `https://marqueja.conectalestesp.com.br/${localClient.business_id}/painel`
     : null;
   const agendamentoUrl = localClient.business_id
-    ? `https://app.marqueja.com.br/${localClient.business_id}`
+    ? `https://marqueja.conectalestesp.com.br/${localClient.business_id}`
     : null;
 
   const productNameById = Object.fromEntries(

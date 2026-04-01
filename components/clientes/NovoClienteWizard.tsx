@@ -622,7 +622,7 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
             />
             {data.slug && (
               <SlugPreview>
-                Link do agendamento: marqueja.com.br/<span>{data.slug}</span>
+                Link do agendamento: marqueja.conectalestesp.com.br/<span>{data.slug}</span>
                 {" "}·{" "}
                 <input
                   style={{ background: "transparent", border: "none", color: "var(--color-primary)", fontWeight: 500, fontSize: 12, outline: "none", padding: 0 }}
@@ -1070,7 +1070,7 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
               <div>
                 <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 2 }}>Link de agendamento</p>
                 <p style={{ fontSize: 13, fontWeight: 600, color: "var(--color-primary)" }}>
-                  app.marqueja.com.br/{provisionResult.slug}
+                  marqueja.conectalestesp.com.br/{provisionResult.slug}
                 </p>
               </div>
               <div>
@@ -1081,7 +1081,7 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
               </div>
             </div>
             <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 20 }}>
-              O cliente deve alterar a senha no primeiro acesso em app.marqueja.com.br/{provisionResult.slug}/painel
+              O cliente deve alterar a senha no primeiro acesso em marqueja.conectalestesp.com.br/{provisionResult.slug}/painel
             </p>
             <button
               onClick={() => { setProvisionResult(null); onSuccess(); }}
