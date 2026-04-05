@@ -20,6 +20,7 @@ import {
   ArrowSquareOut,
   NotePencil,
   UserCirclePlus,
+  Copy,
 } from "@phosphor-icons/react";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -537,6 +538,64 @@ const OrigemChip = styled.span`
   border: 1px solid var(--color-border);
 `;
 
+const CardDaysAgo = styled.div`
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.7;
+`;
+
+// ─── WhatsApp Template Box ────────────────────────────────────────────────────
+
+const TemplateBox = styled.div`
+  background: rgba(34,197,94,0.05);
+  border: 1px solid rgba(34,197,94,0.18);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+`;
+
+const TemplateHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+`;
+
+const TemplateLabel = styled.span`
+  font-size: 12px;
+  font-weight: 600;
+  color: #22c55e;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+`;
+
+const TemplateCopyBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #22c55e;
+  border: 1px solid rgba(34,197,94,0.25);
+  background: rgba(34,197,94,0.08);
+  transition: all 0.15s;
+  &:hover { background: rgba(34,197,94,0.15); }
+`;
+
+const TemplateText = styled.p`
+  font-size: 12.5px;
+  color: var(--color-text);
+  line-height: 1.55;
+  margin: 0;
+`;
+
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
 
 const DetailHeader = styled.div`
@@ -658,6 +717,29 @@ function getInitials(nome: string): string {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
+// ─── Template de abordagem WhatsApp por segmento ──────────────────────────────
+
+const WHATSAPP_TEMPLATES: Record<string, (nome: string) => string> = {
+  "Barbearia": (n) => `Olá! Vi que a ${n} ainda não tem um perfil ativo no Instagram. A gente cuida de toda a presença digital da sua barbearia — fotos, posts, stories e Google Maps. Posso te mostrar como funciona?`,
+  "Salão de Beleza": (n) => `Oi! Passei pelo perfil da ${n} e percebi que dá pra atrair muito mais clientes com uma presença digital organizada. A gente monta tudo pra você — Instagram, Google e mais. Quer saber como?`,
+  "Clínica": (n) => `Olá! Notei que a ${n} ainda não tem um Google Meu Negócio completo. Isso faz muita diferença na hora de aparecer nas buscas locais. A gente cuida disso pra você. Posso explicar melhor?`,
+  "Restaurante": (n) => `Oi! Vi que o ${n} ainda não tem um cardápio digital ou perfil ativo nas redes. A gente monta a presença completa do seu restaurante online. Que tal a gente conversar?`,
+  "Lanchonete": (n) => `Olá! A ${n} ainda não tem Instagram ativo ou Google Meu Negócio configurado. Com isso, muita gente passa na sua frente sem te encontrar. Posso mostrar como mudar isso?`,
+  "Padaria": (n) => `Oi! Percebi que a ${n} ainda não tem presença digital organizada. A gente cuida das suas redes e do seu perfil no Google. Posso te mostrar o que fazemos por outras padarias da região?`,
+  "Pet Shop": (n) => `Olá! Vi que o ${n} ainda não usa as redes sociais pra atrair clientes. A gente monta tudo — fotos dos pets, promoções, Google Maps. Quer ver como funciona?`,
+  "Academia": (n) => `Oi! A ${n} ainda não tem um Instagram ativo? Hoje em dia as pessoas escolhem academia pelas redes. A gente cuida de toda a presença digital pra você. Quer conversar?`,
+  "Loja de Roupas": (n) => `Olá! Percebi que a ${n} ainda não vende pelo Instagram ou tem fotos profissionais dos produtos. A gente monta isso pra você. Posso te mostrar como funciona?`,
+  "Mercado": (n) => `Oi! O ${n} ainda não tem um Google Meu Negócio completo. Com ele, moradores da região te encontram mais fácil. A gente configura e cuida disso. Quer saber mais?`,
+  "Mecânica": (n) => `Olá! Notei que a ${n} ainda não aparece bem no Google Maps. Muita gente procura mecânica pelo celular. A gente cuida da sua presença digital completa. Posso te contar mais?`,
+  "Farmácia": (n) => `Oi! Vi que a ${n} ainda não tem um perfil ativo no Google Meu Negócio. Isso ajuda muito quem tá procurando farmácia perto de casa. A gente configura e cuida disso. Quer ver?`,
+};
+
+function getWhatsAppTemplate(segmento: string, nome: string): string {
+  const fn = WHATSAPP_TEMPLATES[segmento];
+  if (fn) return fn(nome);
+  return `Olá! Vi que o(a) ${nome} ainda não tem uma presença digital completa. A Conecta Leste SP cuida das suas redes sociais, Google Maps e muito mais. Posso te contar como funciona?`;
+}
+
 function shortSite(url: string) {
   return url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
 }
@@ -665,6 +747,13 @@ function shortSite(url: string) {
 function formatDate(dateStr: string) {
   const [y, m, d] = dateStr.split("-");
   return `${d}/${m}/${y}`;
+}
+
+function daysAgo(dateStr: string): string {
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
+  if (diff === 0) return "hoje";
+  if (diff === 1) return "há 1 dia";
+  return `há ${diff} dias`;
 }
 
 function getOrigemColor(origem: LeadOrigem) {
@@ -704,6 +793,7 @@ export default function LeadsPage() {
   const [selectedLead, setSelectedLead] = useState<PipelineLead | null>(null);
   const [editStatus, setEditStatus] = useState<LeadStatus>("Novo");
   const [editNotas, setEditNotas] = useState("");
+  const [copiedTemplate, setCopiedTemplate] = useState(false);
 
   // ─── Add modal state ─────────────────────────────────────────────────────────
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -1074,8 +1164,28 @@ export default function LeadsPage() {
             <LoadingRow><SpinnerEl />Carregando leads...</LoadingRow>
           ) : filteredPipeline.length === 0 ? (
             <EmptyBox>
-              <EmptyTitle>Nenhum lead neste status.</EmptyTitle>
-              <EmptyDesc>Capture leads na aba Prospecção ou adicione manualmente.</EmptyDesc>
+              <FunnelSimple size={34} style={{ color: "var(--color-border)", marginBottom: 12 }} />
+              <EmptyTitle>
+                {pipelineTab === "Todos" ? "Nenhum lead captado ainda." : `Nenhum lead com status "${pipelineTab}".`}
+              </EmptyTitle>
+              <EmptyDesc style={{ marginBottom: 16 }}>
+                Capture negócios na aba Prospecção para começar o funil.
+              </EmptyDesc>
+              <button
+                onClick={() => setMainTab("prospeccao")}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "7px 16px", borderRadius: "var(--radius-sm)",
+                  fontSize: 13, fontWeight: 600,
+                  color: "var(--color-primary)",
+                  border: "1px solid rgba(249,115,22,0.3)",
+                  background: "rgba(249,115,22,0.08)",
+                  transition: "all 0.15s",
+                }}
+              >
+                <MagnifyingGlass size={14} />
+                Ir para Prospecção
+              </button>
             </EmptyBox>
           ) : (
             <CardsGrid>
@@ -1106,6 +1216,11 @@ export default function LeadsPage() {
                           <span style={{ opacity: 0.35 }}>Sem telefone</span>
                         )}
                       </CardPhone>
+
+                      <CardDaysAgo>
+                        <CalendarBlank size={11} />
+                        {daysAgo(lead.created_at)}
+                      </CardDaysAgo>
 
                       <CardFooter>
                         <CardStatusText $color={color}>
@@ -1223,6 +1338,31 @@ export default function LeadsPage() {
             </DetailInfoGrid>
 
             <DetailSeparator />
+
+            {/* Template de abordagem WhatsApp */}
+            {selectedLead && (
+              <TemplateBox>
+                <TemplateHeader>
+                  <TemplateLabel>
+                    <Phone size={13} weight="fill" />
+                    Sugestão de abordagem WhatsApp
+                  </TemplateLabel>
+                  <TemplateCopyBtn
+                    onClick={() => {
+                      const msg = getWhatsAppTemplate(selectedLead.segmento, selectedLead.nome);
+                      navigator.clipboard.writeText(msg);
+                      setCopiedTemplate(true);
+                      setTimeout(() => setCopiedTemplate(false), 2000);
+                    }}
+                  >
+                    {copiedTemplate ? <><CheckCircle size={12} weight="fill" /> Copiado!</> : <><Copy size={12} /> Copiar</>}
+                  </TemplateCopyBtn>
+                </TemplateHeader>
+                <TemplateText>
+                  {getWhatsAppTemplate(selectedLead.segmento, selectedLead.nome)}
+                </TemplateText>
+              </TemplateBox>
+            )}
 
             <div style={{ marginBottom: 14 }}>
               <DetailLabel>Status</DetailLabel>

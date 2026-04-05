@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import {
@@ -14,7 +15,9 @@ import {
   SignOut,
   Sun,
   Moon,
+  MagnifyingGlass,
 } from "@phosphor-icons/react";
+import GlobalSearch from "@/components/layout/GlobalSearch";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -77,17 +80,10 @@ const SidebarHeader = styled.div`
 const LogoBadge = styled.div`
   width: 38px;
   height: 38px;
-  background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
   border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 800;
-  color: #fff;
+  overflow: hidden;
   flex-shrink: 0;
-  letter-spacing: -0.5px;
-  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
 `;
 
 const LogoText = styled.div`
@@ -141,6 +137,55 @@ const NavDivider = styled.div`
   background: var(--color-border);
   margin: 6px 4px 10px;
   opacity: 0.6;
+`;
+
+const SearchBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 20px);
+  margin: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  transition: all 0.15s;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #3a3a3a;
+    color: var(--color-text);
+  }
+`;
+
+const SearchKbd = styled.kbd`
+  margin-left: auto;
+  font-family: inherit;
+  font-size: 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: var(--color-text-muted);
+`;
+
+const AlertBadge = styled.span`
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
 `;
 
 const NavLink = styled(Link)<{ $active?: boolean }>`
@@ -253,6 +298,8 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isDark, setIsDark] = useState(true);
+  const [alerts, setAlerts] = useState({ overdue: 0, newLeads: 0 });
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("hub_theme");
@@ -260,6 +307,32 @@ export default function Sidebar() {
       setIsDark(false);
       document.documentElement.setAttribute("data-theme", "light");
     }
+  }, []);
+
+  const fetchAlerts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/alerts");
+      if (res.ok) setAlerts(await res.json());
+    } catch {
+      // ignora erros silenciosamente
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAlerts();
+    const id = setInterval(fetchAlerts, 60_000);
+    return () => clearInterval(id);
+  }, [fetchAlerts]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((o) => !o);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   function toggleTheme() {
@@ -280,14 +353,23 @@ export default function Sidebar() {
   }
 
   return (
+    <>
     <SidebarRoot>
       <SidebarHeader>
-        <LogoBadge>CL</LogoBadge>
+        <LogoBadge>
+          <Image src="/conecta-logo.jpeg" alt="Conecta Leste SP" width={38} height={38} style={{ objectFit: "cover", width: "100%", height: "100%" }} />
+        </LogoBadge>
         <LogoText>
-          <LogoTitle>Conecta Leste</LogoTitle>
+          <LogoTitle>Conecta Leste SP</LogoTitle>
           <LogoSub>Painel da Agência</LogoSub>
         </LogoText>
       </SidebarHeader>
+
+      <SearchBtn onClick={() => setSearchOpen(true)}>
+        <MagnifyingGlass size={14} />
+        Buscar...
+        <SearchKbd>⌘K</SearchKbd>
+      </SearchBtn>
 
       <Nav>
         <NavGroup>
@@ -295,10 +377,15 @@ export default function Sidebar() {
           {NAV_MAIN.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const badge =
+              item.href === "/financeiro" && alerts.overdue > 0 ? alerts.overdue :
+              item.href === "/leads"      && alerts.newLeads > 0 ? alerts.newLeads :
+              null;
             return (
               <NavLink key={item.href} href={item.href} $active={isActive}>
                 <Icon size={17} weight={isActive ? "fill" : "regular"} />
                 {item.label}
+                {badge !== null && <AlertBadge>{badge > 99 ? "99+" : badge}</AlertBadge>}
               </NavLink>
             );
           })}
@@ -340,5 +427,8 @@ export default function Sidebar() {
         </SignOutButton>
       </SidebarFooter>
     </SidebarRoot>
+
+    {searchOpen && <GlobalSearch onClose={() => setSearchOpen(false)} />}
+    </>
   );
 }

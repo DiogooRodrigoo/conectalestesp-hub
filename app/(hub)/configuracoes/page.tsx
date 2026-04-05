@@ -1,7 +1,7 @@
 "use client";
 
 import styled, { keyframes } from "styled-components";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Buildings,
@@ -12,6 +12,10 @@ import {
   ArrowsClockwise,
   SignOut,
   Lock,
+  PencilSimple,
+  FloppyDisk,
+  X,
+  Envelope,
 } from "@phosphor-icons/react";
 import Button from "@/components/ui/Button";
 import { getSupabaseClient } from "@/lib/supabase/client";
@@ -98,10 +102,15 @@ const FieldInput = styled.input`
   font-size: 13.5px;
   font-family: inherit;
   outline: none;
-  cursor: default;
 
   &:disabled {
     opacity: 0.7;
+    cursor: default;
+  }
+
+  &:not(:disabled) {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 2px;
   }
 `;
 
@@ -207,12 +216,96 @@ const DangerRow = styled(AccountRow)`
   }
 `;
 
+const Toast = styled.div<{ $variant: "success" | "error" }>`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  animation: ${fadeUp} 0.2s ease both;
+  background: ${({ $variant }) => $variant === "success"
+    ? "rgba(34,197,94,0.08)"
+    : "rgba(239,68,68,0.08)"};
+  border: 1px solid ${({ $variant }) => $variant === "success"
+    ? "rgba(34,197,94,0.2)"
+    : "rgba(239,68,68,0.2)"};
+  color: ${({ $variant }) => $variant === "success"
+    ? "var(--color-success)"
+    : "var(--color-danger)"};
+`;
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const AGENCY_STORAGE_KEY = "hub_agency_info";
+
+interface AgencyInfo {
+  name:  string;
+  owner: string;
+  email: string;
+  phone: string;
+}
+
+function loadAgencyInfo(): AgencyInfo {
+  try {
+    const raw = localStorage.getItem(AGENCY_STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as AgencyInfo;
+  } catch { /* ignore */ }
+  return {
+    name:  "Conecta Leste SP",
+    owner: "",
+    email: "",
+    phone: "",
+  };
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ConfiguracoesPage() {
   const router = useRouter();
-  const [testando, setTestando] = useState(false);
+
+  // ── Integração ──
+  const [testando,   setTestando]   = useState(false);
   const [testResult, setTestResult] = useState<null | "ok" | "err">(null);
+
+  // ── Conta ──
+  const [userEmail,      setUserEmail]      = useState<string | null>(null);
+  const [resetLoading,   setResetLoading]   = useState(false);
+  const [toast,          setToast]          = useState<{ msg: string; variant: "success" | "error" } | null>(null);
+
+  // ── Dados da Agência ──
+  const [editing,    setEditing]    = useState(false);
+  const [agency,     setAgency]     = useState<AgencyInfo>(loadAgencyInfo);
+  const [agencyDraft, setAgencyDraft] = useState<AgencyInfo>(agency);
+
+  useEffect(() => {
+    getSupabaseClient().auth.getUser().then(({ data }) => {
+      if (data.user?.email) setUserEmail(data.user.email);
+    });
+  }, []);
+
+  function showToast(msg: string, variant: "success" | "error") {
+    setToast({ msg, variant });
+    setTimeout(() => setToast(null), 4000);
+  }
+
+  function startEdit() {
+    setAgencyDraft(agency);
+    setEditing(true);
+  }
+
+  function cancelEdit() {
+    setEditing(false);
+  }
+
+  function saveAgency() {
+    setAgency(agencyDraft);
+    localStorage.setItem(AGENCY_STORAGE_KEY, JSON.stringify(agencyDraft));
+    setEditing(false);
+    showToast("Dados da agência salvos com sucesso.", "success");
+  }
 
   async function handleSignOut() {
     await getSupabaseClient().auth.signOut();
@@ -228,6 +321,22 @@ export default function ConfiguracoesPage() {
     }, 1500);
   }
 
+  async function handleResetPassword() {
+    if (!userEmail) return;
+    setResetLoading(true);
+    try {
+      const { error } = await getSupabaseClient().auth.resetPasswordForEmail(userEmail, {
+        redirectTo: `${window.location.origin}/login`,
+      });
+      if (error) throw error;
+      showToast(`Link de redefinição enviado para ${userEmail}.`, "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Erro ao enviar e-mail.", "error");
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
   return (
     <PageWrapper>
       <PageHeader>
@@ -235,28 +344,66 @@ export default function ConfiguracoesPage() {
         <PageSubtitle>Dados da agência, integrações e conta</PageSubtitle>
       </PageHeader>
 
+      {toast && (
+        <Toast $variant={toast.variant}>
+          {toast.variant === "success"
+            ? <CheckCircle size={16} weight="fill" />
+            : <XCircle size={16} weight="fill" />}
+          {toast.msg}
+        </Toast>
+      )}
+
       {/* Dados da Agência */}
       <Section>
-        <SectionTitle>
-          <Buildings size={15} weight="fill" />
-          Dados da Agência
+        <SectionTitle style={{ justifyContent: "space-between" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Buildings size={15} weight="fill" />
+            Dados da Agência
+          </span>
+          {editing ? (
+            <span style={{ display: "flex", gap: 8 }}>
+              <Button variant="secondary" size="sm" icon={<X size={13} />} onClick={cancelEdit}>Cancelar</Button>
+              <Button variant="primary" size="sm" icon={<FloppyDisk size={13} weight="fill" />} onClick={saveAgency}>Salvar</Button>
+            </span>
+          ) : (
+            <Button variant="secondary" size="sm" icon={<PencilSimple size={13} />} onClick={startEdit}>Editar</Button>
+          )}
         </SectionTitle>
         <Card>
           <FieldRow>
             <FieldLabel>Nome da agência</FieldLabel>
-            <FieldInput value="Conecta Leste SP" disabled readOnly />
+            <FieldInput
+              value={editing ? agencyDraft.name : agency.name}
+              disabled={!editing}
+              onChange={(e) => setAgencyDraft((d) => ({ ...d, name: e.target.value }))}
+            />
           </FieldRow>
           <FieldRow>
             <FieldLabel>Responsável</FieldLabel>
-            <FieldInput value="Dono da Agência" disabled readOnly />
+            <FieldInput
+              value={editing ? agencyDraft.owner : agency.owner}
+              disabled={!editing}
+              placeholder={editing ? "Nome do responsável" : "—"}
+              onChange={(e) => setAgencyDraft((d) => ({ ...d, owner: e.target.value }))}
+            />
           </FieldRow>
           <FieldRow>
             <FieldLabel>E-mail de contato</FieldLabel>
-            <FieldInput value="contato@conectaleste.com.br" disabled readOnly />
+            <FieldInput
+              value={editing ? agencyDraft.email : agency.email}
+              disabled={!editing}
+              placeholder={editing ? "contato@email.com" : "—"}
+              onChange={(e) => setAgencyDraft((d) => ({ ...d, email: e.target.value }))}
+            />
           </FieldRow>
           <FieldRow>
-            <FieldLabel>Telefone</FieldLabel>
-            <FieldInput value="(11) 99999-9999" disabled readOnly />
+            <FieldLabel>Telefone / WhatsApp</FieldLabel>
+            <FieldInput
+              value={editing ? agencyDraft.phone : agency.phone}
+              disabled={!editing}
+              placeholder={editing ? "(11) 9 0000-0000" : "—"}
+              onChange={(e) => setAgencyDraft((d) => ({ ...d, phone: e.target.value }))}
+            />
           </FieldRow>
         </Card>
       </Section>
@@ -306,17 +453,26 @@ export default function ConfiguracoesPage() {
           <AccountRow>
             <AccountLeft>
               <AccountLabel>E-mail da conta</AccountLabel>
-              <AccountSub>admin@conectaleste.com.br</AccountSub>
+              <AccountSub style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <Envelope size={12} />
+                {userEmail ?? "Carregando..."}
+              </AccountSub>
             </AccountLeft>
           </AccountRow>
 
           <AccountRow>
             <AccountLeft>
               <AccountLabel>Alterar senha</AccountLabel>
-              <AccountSub>Enviar link de redefinição por e-mail</AccountSub>
+              <AccountSub>Envia um link de redefinição para o seu e-mail</AccountSub>
             </AccountLeft>
-            <Button variant="secondary" size="sm" icon={<Lock size={14} />}>
-              Alterar senha
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Lock size={14} />}
+              loading={resetLoading}
+              onClick={handleResetPassword}
+            >
+              Enviar link
             </Button>
           </AccountRow>
 

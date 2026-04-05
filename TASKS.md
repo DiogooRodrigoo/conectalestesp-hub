@@ -59,9 +59,9 @@
   - [x] Botão no modal de detalhes do lead abre Wizard preenchido com dados do lead
   - [x] Ao confirmar wizard, atualiza status do lead para "won"
 
-- [ ] **Alterações no Cliente** (ações adicionais na ficha)
-  - [ ] Adicionar / editar / remover serviços
-  - [ ] Adicionar / editar / remover profissionais
+- [x] **Alterações no Cliente** (ações adicionais na ficha)
+  - [x] Editar produto contratado inline (preço, status, dia de cobrança) — `PATCH /api/clients/[id]/products/[productId]`
+  - [x] Adicionar novo produto — `POST /api/clients/[id]/products`
   - [ ] Editar horários de funcionamento
   - [ ] Criar bloqueio (folga, feriado, férias)
 
@@ -91,7 +91,7 @@
 - [x] `app/(hub)/financeiro/page.tsx` — integrado com Supabase (dados reais do mês)
 - [x] Marcar pagamento como recebido (`PATCH /api/payments/mark-paid`)
 - [x] MRR recebido por produto (card lateral)
-- [ ] Ver inadimplentes em destaque (overdue com cor vermelha)
+- [x] Ver inadimplentes em destaque — seção "Em Atraso" com fundo vermelho, contagem e total
 
 ---
 
@@ -115,3 +115,24 @@
 - [ ] Deploy na Vercel
 - [ ] Domínio `hub.conectaleste.com.br`
 - [ ] Variáveis de ambiente configuradas na Vercel
+
+---
+
+## Fase 7 — Curadoria UX / Polimento
+
+> Levantamento completo em `CURADORIA.md`. Todos os 15 itens implementados.
+
+- [x] **Fix colunas tabela "Próximos Vencimentos"** — grid corrigido de 5 para 6 colunas (`OverviewView.tsx`)
+- [x] **Configurações reais** — e-mail via Supabase Auth, dados da agência editáveis (localStorage), `resetPasswordForEmail` funcional, toast de feedback (`configuracoes/page.tsx`)
+- [x] **Inadimplentes em destaque** — seção "Em Atraso" no topo do Financeiro com total e ações de marcar pago (`FinanceiroView.tsx`)
+- [x] **Badges de alerta na Sidebar e Drawer mobile** — badge vermelho em Financeiro (overdue) e Leads (novos), poll a cada 60s via `GET /api/alerts` (`Sidebar.tsx`, `MobileHeader.tsx`)
+- [x] **Tempo no status no Pipeline** — "há X dias" em cada card do pipeline com helper `daysAgo` (`leads/page.tsx`)
+- [x] **Filtro de período no Financeiro** — seletor ‹ Mês Ano › com navegação, recarrega via `GET /api/payments?year=&month=` (`FinanceiroView.tsx`, `api/payments/route.ts`)
+- [x] **Gráfico de MRR no Overview** — sparkline SVG puro (linha + área gradiente + pontos), 6 meses, via `GET /api/mrr-history` (`OverviewView.tsx`, `api/mrr-history/route.ts`)
+- [x] **Template WhatsApp por segmento** — caixa verde no modal do lead com mensagem pré-formatada e botão copiar (`leads/page.tsx`)
+- [x] **Confirmar marcar como pago** — confirmação de dois passos inline "Confirmar? Sim / ✕" sem modal (`FinanceiroView.tsx`)
+- [x] **Estado vazio útil no Pipeline** — empty state com ícone, texto contextual e CTA "Ir para Prospecção" (`leads/page.tsx`)
+- [x] **Breadcrumb na ficha do cliente** — `← Clientes / Nome do Negócio` substituindo o BackLink simples (`ClienteDetailView.tsx`)
+- [x] **Exportar cobrança CSV** — botão no header do Financeiro, arquivo BOM UTF-8, nome com mês/ano (`FinanceiroView.tsx`)
+- [x] **Busca global ⌘K** — modal com debounce 280ms, navegação teclado ↑↓ Enter Esc, busca em clientes + leads via `GET /api/search`, badge por tipo, botão na sidebar desktop (`GlobalSearch.tsx`, `Sidebar.tsx`, `api/search/route.ts`)
+- [x] **Edição inline de produto** — formulário colapsável por produto: preço, status, dia de cobrança + adicionar novo produto com seletor completo (`ClienteDetailView.tsx`, `api/clients/[id]/products/route.ts`, `api/clients/[id]/products/[productId]/route.ts`)
