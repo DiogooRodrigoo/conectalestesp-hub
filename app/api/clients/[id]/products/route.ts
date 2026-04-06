@@ -11,7 +11,8 @@ export async function POST(
     const body = await req.json();
 
     const supabase = createAdminSupabaseClient();
-    const { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
       .from("client_products")
       .insert({
         client_id,

@@ -11,7 +11,8 @@ export async function PATCH(
     const body = await req.json();
 
     const supabase = createAdminSupabaseClient();
-    const { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
       .from("client_products")
       .update({
         monthly_price_cents: body.monthly_price_cents,
