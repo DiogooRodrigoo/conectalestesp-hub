@@ -6,7 +6,7 @@
  * Usar em Server Components ou API Routes — nunca em "use client".
  */
 
-import { createServerSupabaseClient, createAdminSupabaseClient } from "./server";
+import { createAdminSupabaseClient } from "./server";
 import type {
   Client,
   ClientWithProducts,

@@ -280,7 +280,7 @@ export default function GlobalSearch({ onClose }: Props) {
             ))}
           </ResultsList>
         ) : query.length >= 2 && !loading ? (
-          <EmptyState>Nenhum resultado encontrado para "{query}"</EmptyState>
+          <EmptyState>Nenhum resultado encontrado para &quot;{query}&quot;</EmptyState>
         ) : query.length < 2 && query.length > 0 ? (
           <EmptyState>Continue digitando para buscar...</EmptyState>
         ) : null}

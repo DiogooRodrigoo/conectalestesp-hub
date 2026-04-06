@@ -31,7 +31,7 @@ function toSlug(name: string): string {
     .slice(0, 60);
 }
 
-function generatePassword(): string {
+function _generatePassword(): string {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#";
   return Array.from({ length: 10 }, () =>
     chars[Math.floor(Math.random() * chars.length)]

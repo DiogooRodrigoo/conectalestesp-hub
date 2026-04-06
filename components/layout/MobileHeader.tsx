@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import styled, { keyframes, css } from "styled-components";
+import styled, { keyframes } from "styled-components";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -33,11 +33,6 @@ const NAV_SYSTEM = [
 ];
 
 // ─── Animations ───────────────────────────────────────────────────────────────
-
-const slideDown = keyframes`
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
-`;
 
 const fadeIn = keyframes`
   from { opacity: 0; }
