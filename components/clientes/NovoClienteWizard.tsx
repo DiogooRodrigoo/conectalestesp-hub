@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import styled, { keyframes } from "styled-components";
 import {
   X, ArrowLeft, ArrowRight, Check, Plus, Trash,
   Buildings, ShoppingBag, Gear, Wrench, Users, ClipboardText,
+  Eye, EyeSlash,
 } from "@phosphor-icons/react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -47,6 +49,7 @@ interface WizardData {
   segmento: string;
   bairro: string;
   slug: string;
+  senha: string;
   // Step 2
   produtos: Produto[];
   // Step 3 — Marque Já
@@ -133,12 +136,13 @@ const slideUp = keyframes`
 
 const Overlay = styled.div`
   position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0, 0, 0, 0.72);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex; align-items: center; justify-content: center;
   padding: 20px;
   animation: ${fadeIn} 0.18s ease;
+  @media (max-width: 640px) { padding: 12px; }
 `;
 
 const Sheet = styled.div`
@@ -389,6 +393,23 @@ const ReviewRow   = styled.div`display: flex; justify-content: space-between; al
 const ReviewKey   = styled.span`font-size: 13px; color: var(--color-text-muted);`;
 const ReviewVal   = styled.span`font-size: 13px; font-weight: 500; color: var(--color-text); text-align: right; max-width: 60%;`;
 
+const FieldError = styled.p`
+  font-size: 11.5px;
+  color: var(--color-danger);
+  margin-top: -10px;
+`;
+
+const EyeBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  padding: 2px;
+  border-radius: 4px;
+  transition: color 0.15s;
+  &:hover { color: var(--color-text); }
+`;
+
 const SlugPreview = styled.div`
   font-size: 12px; color: var(--color-text-muted); margin-top: 4px;
   span { color: var(--color-primary); font-weight: 500; }
@@ -412,7 +433,7 @@ interface Props {
 // ─── Wizard Component ─────────────────────────────────────────────────────────
 
 const INITIAL: WizardData = {
-  nome: "", dono: "", email: "", telefone: "", segmento: SEGMENTOS[0], bairro: "", slug: "",
+  nome: "", dono: "", email: "", telefone: "", segmento: SEGMENTOS[0], bairro: "", slug: "", senha: "adm@123",
   produtos: [],
   tema_cor: TEMA_CORES[0],
   horarios: defaultHorarios(),
@@ -425,6 +446,12 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [provisionResult, setProvisionResult] = useState<{ slug: string; temp_password: string } | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [showSenha, setShowSenha] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   // temp state for add forms
   const [newServico,    setNewServico]    = useState({ nome: "", preco: "", duracao: "" });
@@ -440,8 +467,27 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
   const isFirst     = currentIdx === 0;
   const isLast      = currentIdx === visibleSteps.length - 1;
 
+  function validateStep1(): Record<string, string> {
+    const errors: Record<string, string> = {};
+    if (!data.nome.trim() || data.nome.trim().length < 2) errors.nome = "Nome do estabelecimento é obrigatório";
+    if (!data.telefone.trim()) errors.telefone = "WhatsApp é obrigatório";
+    return errors;
+  }
+
   function goNext() {
     if (isLast) return;
+    if (step === 1) {
+      const errors = validateStep1();
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        return;
+      }
+    }
+    if (step === 2 && data.produtos.length === 0) {
+      setFieldErrors({ produtos: "Selecione ao menos um produto" });
+      return;
+    }
+    setFieldErrors({});
     setStep(visibleSteps[currentIdx + 1].id);
   }
 
@@ -458,6 +504,7 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
 
   function handleNomeChange(nome: string) {
     setData((d) => ({ ...d, nome, slug: slugify(nome) }));
+    if (fieldErrors.nome) setFieldErrors((e) => ({ ...e, nome: "" }));
   }
 
   // ─── Step 2 helpers ───────────────────────────────────────────────────────
@@ -529,6 +576,7 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
 
   const handleSubmit = useCallback(async () => {
     setSaving(true);
+    setSubmitError(null);
     try {
       // 1. Criar cliente
       const clientRes = await fetch("/api/clients", {
@@ -545,7 +593,10 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
           notes:        data.slug ? `slug:${data.slug}` : null,
         }),
       });
-      if (!clientRes.ok) throw new Error("Falha ao criar cliente.");
+      if (!clientRes.ok) {
+        const errBody = await clientRes.json().catch(() => ({}));
+        throw new Error(errBody.error ?? "Falha ao criar cliente. Verifique sua conexão e tente novamente.");
+      }
       const client = await clientRes.json();
 
       // 2. Criar produtos
@@ -568,6 +619,7 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
             email:         data.email.trim(),
             nome:          data.nome.trim(),
             slug:          data.slug.trim() || undefined,
+            senha:         data.senha.trim() || "adm@123",
             primary_color: data.tema_cor,
             phone_whatsapp: data.telefone.trim() || undefined,
             neighborhood:  data.bairro.trim()   || undefined,
@@ -590,7 +642,7 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
 
       onSuccess();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Erro ao salvar cliente.");
+      setSubmitError(err instanceof Error ? err.message : "Erro ao salvar cliente.");
     } finally {
       setSaving(false);
     }
@@ -599,9 +651,7 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
   // ─── Validation per step ──────────────────────────────────────────────────
 
   function canProceed() {
-    if (step === 1) return data.nome.trim().length >= 2;
-    if (step === 2) return data.produtos.length > 0;
-    return true;
+    return true; // validação real acontece no goNext com mensagem de erro
   }
 
   // ─── Step renderers ───────────────────────────────────────────────────────
@@ -613,13 +663,16 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
         return (
           <FieldGroup>
             <SectionTitle>Informações do Estabelecimento</SectionTitle>
-            <Input
-              label="Nome do estabelecimento *"
-              placeholder="Ex: Barbearia do Zé"
-              value={data.nome}
-              onChange={(e) => handleNomeChange(e.target.value)}
-              fullWidth
-            />
+            <div>
+              <Input
+                label="Nome do estabelecimento *"
+                placeholder="Ex: Barbearia do Zé"
+                value={data.nome}
+                onChange={(e) => handleNomeChange(e.target.value)}
+                error={fieldErrors.nome}
+                fullWidth
+              />
+            </div>
             {data.slug && (
               <SlugPreview>
                 Link do agendamento: marqueja.conectalestesp.com.br/<span>{data.slug}</span>
@@ -655,19 +708,38 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
                 onChange={(e) => set("dono", e.target.value)}
                 fullWidth
               />
-              <Input
-                label="WhatsApp"
-                placeholder="(11) 99999-9999"
-                value={data.telefone}
-                onChange={(e) => set("telefone", e.target.value)}
-                fullWidth
-              />
+              <div>
+                <Input
+                  label="WhatsApp *"
+                  placeholder="(11) 99999-9999"
+                  value={data.telefone}
+                  onChange={(e) => {
+                    set("telefone", e.target.value);
+                    if (fieldErrors.telefone) setFieldErrors((err) => ({ ...err, telefone: "" }));
+                  }}
+                  error={fieldErrors.telefone}
+                  fullWidth
+                />
+              </div>
             </Row2>
             <Input
               label="E-mail"
               placeholder="jose@email.com"
               value={data.email}
               onChange={(e) => set("email", e.target.value)}
+              fullWidth
+            />
+            <Input
+              label="Senha de acesso ao Marque Já"
+              type={showSenha ? "text" : "password"}
+              value={data.senha}
+              onChange={(e) => set("senha", e.target.value)}
+              iconRight={
+                <EyeBtn type="button" onClick={() => setShowSenha((v) => !v)}>
+                  {showSenha ? <EyeSlash size={15} /> : <Eye size={15} />}
+                </EyeBtn>
+              }
+              hint="Padrão: adm@123 — o cliente deve alterar no primeiro acesso"
               fullWidth
             />
           </FieldGroup>
@@ -678,6 +750,7 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
         return (
           <FieldGroup>
             <SectionTitle>Selecione os produtos contratados</SectionTitle>
+            {fieldErrors.produtos && <FieldError>{fieldErrors.produtos}</FieldError>}
             <ProductGrid>
               {PRODUCT_OPTIONS.map((opt) => {
                 const selected = data.produtos.find((p) => p.product === opt.key);
@@ -988,7 +1061,9 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
     6: { title: "Revisão",                subtitle: "Confira os dados antes de confirmar" },
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <Overlay onClick={(e) => e.target === e.currentTarget && onClose()}>
       <Sheet>
         <SheetHeader>
@@ -1020,11 +1095,30 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
         <SheetBody>{renderStep()}</SheetBody>
 
         <SheetFooter>
-          <FooterLeft>
+          {submitError && (
+            <div style={{
+              flex: 1,
+              fontSize: 12,
+              color: "var(--color-danger)",
+              background: "rgba(239,68,68,0.08)",
+              border: "1px solid rgba(239,68,68,0.2)",
+              borderRadius: "var(--radius-sm)",
+              padding: "8px 12px",
+              lineHeight: 1.4,
+            }}>
+              {submitError}
+            </div>
+          )}
+          {!submitError && <FooterLeft>
             <Button variant="ghost" icon={<ArrowLeft size={15} />} onClick={isFirst ? onClose : goPrev}>
               {isFirst ? "Cancelar" : "Voltar"}
             </Button>
-          </FooterLeft>
+          </FooterLeft>}
+          {submitError && <FooterLeft>
+            <Button variant="ghost" icon={<ArrowLeft size={15} />} onClick={() => setSubmitError(null)}>
+              Tentar novamente
+            </Button>
+          </FooterLeft>}
           <FooterRight>
             {isLast ? (
               <Button variant="primary" loading={saving} onClick={handleSubmit}>
@@ -1096,6 +1190,7 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
           </div>
         </Overlay>
       )}
-    </Overlay>
+    </Overlay>,
+    document.body
   );
 }

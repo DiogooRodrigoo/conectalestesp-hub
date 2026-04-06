@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createServerSupabaseAdminClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 // ─── Clientes Supabase ────────────────────────────────────────────────────────
 
@@ -63,6 +63,7 @@ interface ProvisionBody {
   email:          string;
   nome:           string;
   slug?:          string;
+  senha?:         string;
   primary_color?: string;
   phone_whatsapp?: string;
   neighborhood?:  string;
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
     // marqueJa → Supabase do Marque Já (tabelas businesses, services, etc.)
     // hubClient → Supabase do Hub (tabela clients)
     const marqueJa = createMarqueJaClient();
-    const hubClient = await createServerSupabaseAdminClient();
+    const hubClient = createAdminSupabaseClient();
 
     const slug = (body.slug?.trim() || toSlug(body.nome)).replace(
       /[^a-z0-9-]/g,
@@ -109,7 +110,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Criar auth user no Marque Já
-    const tempPassword = generatePassword();
+    const tempPassword = body.senha?.trim() || "adm@123";
     const { data: authData, error: authError } =
       await marqueJa.auth.admin.createUser({
         email: body.email,
@@ -249,10 +250,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 6. Atualizar Hub client com business_id (usa cliente do Hub)
+    // 6. Atualizar Hub client com business_id + slug (usa cliente do Hub)
     const { error: updateError } = await (hubClient as any)
       .from("clients")
-      .update({ business_id: businessId })
+      .update({ business_id: businessId, slug })
       .eq("id", body.client_id);
 
     if (updateError) {

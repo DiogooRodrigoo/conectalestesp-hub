@@ -57,6 +57,10 @@ const Toolbar = styled.div`
   gap: 12px;
   margin-bottom: 20px;
   flex-wrap: wrap;
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 const TabsRow = styled.div`
@@ -80,13 +84,22 @@ const Tab = styled.button<{ $active: boolean }>`
   &:hover { color: var(--color-text); background: var(--color-surface); }
 `;
 
-const SearchWrap = styled.div`flex: 1; max-width: 300px;`;
+const SearchWrap = styled.div`
+  flex: 1;
+  max-width: 300px;
+  @media (max-width: 640px) { max-width: 100%; }
+`;
 
-const Table = styled.div`
+const TableWrapper = styled.div`
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+`;
+
+const Table = styled.div`
+  min-width: 700px;
 `;
 
 const TableHeader = styled.div`
@@ -216,6 +229,7 @@ export default function ClientesView({ clients }: Props) {
         </SearchWrap>
       </Toolbar>
 
+      <TableWrapper>
       <Table>
         <TableHeader>
           <TH>Cliente</TH>
@@ -272,6 +286,7 @@ export default function ClientesView({ clients }: Props) {
           })
         )}
       </Table>
+      </TableWrapper>
 
       {wizardOpen && (
         <NovoClienteWizard

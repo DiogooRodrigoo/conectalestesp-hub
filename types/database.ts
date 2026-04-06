@@ -38,18 +38,20 @@ export interface HubAdmin {
 }
 
 export interface Client {
-  id:           string;
-  business_id:  string | null;
-  name:         string;
-  owner_name:   string | null;
-  owner_email:  string | null;
-  phone:        string | null;
-  segment:      string | null;
-  neighborhood: string | null;
-  status:       ClientStatus;
-  notes:        string | null;
-  created_at:   string;
-  updated_at:   string;
+  id:             string;
+  business_id:    string | null;
+  slug:           string | null;
+  name:           string;
+  owner_name:     string | null;
+  owner_email:    string | null;
+  phone:          string | null;
+  segment:        string | null;
+  neighborhood:   string | null;
+  status:         ClientStatus;
+  access_blocked: boolean;
+  notes:          string | null;
+  created_at:     string;
+  updated_at:     string;
 }
 
 export interface ClientProduct {

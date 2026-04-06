@@ -91,6 +91,16 @@ const GlobalStyle = createGlobalStyle`
     transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease,
       box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
   }
+
+  /* Hub main content — responsividade */
+  .hub-main {
+    @media (max-width: 768px) {
+      padding: 20px 16px !important;
+    }
+    @media (max-width: 480px) {
+      padding: 16px 12px !important;
+    }
+  }
 `;
 
 export default GlobalStyle;

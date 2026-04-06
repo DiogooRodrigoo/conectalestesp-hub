@@ -4,21 +4,21 @@
  * Uso: Server Components, API Routes (Route Handlers), e Server Actions.
  *
  * SEGURANCA:
- *   • createServerSupabaseClient()        → usa ANON_KEY, sujeita ao RLS
- *   • createServerSupabaseAdminClient()   → usa SERVICE_ROLE_KEY, bypassa RLS
+ *   • createServerSupabaseClient()  → usa ANON_KEY + cookies de sessão, sujeita ao RLS
+ *   • createAdminSupabaseClient()   → usa SERVICE_ROLE_KEY pura (supabase-js), bypassa RLS
  *
  * REGRAS DE USO:
  *   • Use createServerSupabaseClient() como padrão em Server Components
- *   • Use createServerSupabaseAdminClient() APENAS em API Routes que
- *     precisam de acesso administrativo (ex: verificar usuário por email,
- *     operações que precisam contornar RLS intencionalmente)
+ *   • Use createAdminSupabaseClient() APENAS em API Routes que precisam de acesso admin
  *   • NUNCA exponha o admin client ou a SERVICE_ROLE_KEY no browser
  *   • O admin client NÃO deve ser usado em componentes com "use client"
  *
  * IMPORTANTE:
- *   • Ambas as funções são async pois cookies() é assíncrono no Next.js 15
+ *   • createServerSupabaseClient é async pois cookies() é assíncrono no Next.js 15
+ *   • createAdminSupabaseClient é síncrono (não usa cookies)
  */
 
+import { createClient }                       from "@supabase/supabase-js";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@/types/database";
@@ -78,53 +78,32 @@ export async function createServerSupabaseClient() {
 // ─── Cliente admin (service role — bypassa RLS) ───────────────────────────────
 
 /**
- * Cria um cliente Supabase server-side usando a chave de Service Role.
+ * Cria um cliente Supabase admin usando a chave de Service Role pura.
+ *
+ * Usa @supabase/supabase-js diretamente (sem cookie-based SSR) para garantir
+ * que o service role key seja usado como credencial de autorização, não o JWT
+ * do usuário logado nos cookies. Isso garante o bypass completo de RLS.
  *
  * ATENCAO: Este cliente bypassa completamente o RLS.
- * Use SOMENTE quando necessário e SOMENTE em server-side (API Routes).
- *
- * Casos de uso válidos:
- *   - Verificar se um usuário existe por email (para validação de convite)
- *   - Operações de manutenção/admin que precisam acessar dados sem filtro
- *   - Webhooks que recebem dados externos e precisam gravar sem contexto de sessão
- *
- * NUNCA use em:
- *   - Client Components ("use client")
- *   - Páginas acessíveis sem autenticação
- *   - Lógica que processa input diretamente do usuário sem validação prévia
- *
- * @example
- * // Em uma API Route protegida por auth:
- * const supabase = await createServerSupabaseAdminClient();
- * const { data } = await supabase.auth.admin.listUsers();
+ * Use SOMENTE em server-side (API Routes). NUNCA em "use client".
  */
-export async function createServerSupabaseAdminClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient<Database>(
+export function createAdminSupabaseClient() {
+  return createClient<Database>(
     requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
     requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
     {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // no-op em Server Components — ver comentário acima
-          }
-        },
-      },
-      // Desabilita auto-refresh de token no cliente admin
-      // O admin client não deve manter sessão de usuário
       auth: {
         autoRefreshToken: false,
-        persistSession: false,
+        persistSession:   false,
       },
     }
   );
+}
+
+/**
+ * @deprecated Use createAdminSupabaseClient() — síncrono e sem cookies.
+ * Mantido para compatibilidade retroativa.
+ */
+export async function createServerSupabaseAdminClient() {
+  return createAdminSupabaseClient();
 }

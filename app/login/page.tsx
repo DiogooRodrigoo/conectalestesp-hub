@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Inter } from "next/font/google";
 import styled, { keyframes } from "styled-components";
 import { getSupabaseClient } from "@/lib/supabase/client";
@@ -98,16 +99,9 @@ const LogoBadge = styled.div`
   width: 52px;
   height: 52px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 800;
-  color: #fff;
+  overflow: hidden;
   flex-shrink: 0;
-  letter-spacing: -0.5px;
-  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.4);
+  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.3);
 `;
 
 const LogoText = styled.div`
@@ -541,10 +535,12 @@ export default function LoginPage() {
       <LeftPanel>
         <FormCard data-theme="light">
           <Logo>
-            <LogoBadge>CL</LogoBadge>
+            <LogoBadge>
+              <Image src="/conecta-logo.jpeg" alt="Conecta Leste SP" width={52} height={52} style={{ objectFit: "cover", width: "100%", height: "100%" }} />
+            </LogoBadge>
             <LogoText>
-              <LogoName>Hub</LogoName>
-              <LogoSub>Conecta Leste SP — Painel Interno</LogoSub>
+              <LogoName>Conecta Leste SP</LogoName>
+              <LogoSub>Painel Interno da Agência</LogoSub>
             </LogoText>
           </Logo>
 
