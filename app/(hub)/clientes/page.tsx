@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getClients } from "@/lib/supabase/hub";
 import ClientesView from "@/components/clientes/ClientesView";
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styled, { keyframes } from "styled-components";
 import Link from "next/link";
 import { MagnifyingGlass, Plus, ArrowRight, CurrencyCircleDollar } from "@phosphor-icons/react";
@@ -281,6 +282,7 @@ interface Props {
 }
 
 export default function ClientesView({ clients }: Props) {
+  const router = useRouter();
   const [activeTab, setActiveTab]   = useState<FilterTab>("Todos");
   const [search, setSearch]         = useState("");
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -295,7 +297,7 @@ export default function ClientesView({ clients }: Props) {
 
   function handleWizardSuccess() {
     setWizardOpen(false);
-    window.location.reload();
+    router.refresh();
   }
 
   return (
