@@ -786,6 +786,17 @@ export default function ClienteDetailView({ client }: Props) {
   const [config,        setConfig]        = useState<MarqueJaConfig | null>(null);
   const [configError,   setConfigError]   = useState<string | null>(null);
 
+  // ── Reprovisionamento ──
+  const [reprovOpen,    setReprovOpen]    = useState(false);
+  const [reprovLoading, setReprovLoading] = useState(false);
+  const [reprovError,   setReprovError]   = useState<string | null>(null);
+  const [reprovResult,  setReprovResult]  = useState<{ slug: string; temp_password: string } | null>(null);
+  const [reprovForm,    setReprovForm]    = useState({
+    email: localClient.owner_email ?? "",
+    slug:  localClient.slug ?? "",
+    senha: "",
+  });
+
   // ─── Derived ────────────────────────────────────────────────────────────────
 
   const hasMarqueJa    = localClient.client_products.some((p) => p.product === "marque_ja");
@@ -874,6 +885,38 @@ export default function ClienteDetailView({ client }: Props) {
       alert(err instanceof Error ? err.message : "Erro ao alterar acesso");
     } finally {
       setToggleLoading(false);
+    }
+  }
+
+  async function handleReprovision() {
+    if (!reprovForm.email.trim()) {
+      setReprovError("E-mail é obrigatório.");
+      return;
+    }
+    setReprovLoading(true);
+    setReprovError(null);
+    try {
+      const res = await fetch("/api/provision-client", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_id:       localClient.id,
+          email:           reprovForm.email.trim(),
+          nome:            localClient.name,
+          slug:            reprovForm.slug.trim() || undefined,
+          senha:           reprovForm.senha.trim() || undefined,
+          phone_whatsapp:  localClient.phone ?? undefined,
+          neighborhood:    localClient.neighborhood ?? undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erro ao provisionar");
+      setReprovResult({ slug: data.slug, temp_password: data.temp_password });
+      setLocalClient((prev) => ({ ...prev, slug: data.slug, business_id: data.business_id ?? prev.business_id }));
+    } catch (err) {
+      setReprovError(err instanceof Error ? err.message : "Erro desconhecido");
+    } finally {
+      setReprovLoading(false);
     }
   }
 
@@ -1266,9 +1309,76 @@ export default function ClienteDetailView({ client }: Props) {
               </LinkRow>
             </>
           ) : (
-            <EmptyMsg>
-              Slug não cadastrado — reprovisionne o cliente para gerar os links corretos.
-            </EmptyMsg>
+            <div>
+              {!reprovOpen && !reprovResult && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "4px 0" }}>
+                  <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
+                    Slug não cadastrado — o provisionamento ainda não foi concluído.
+                  </span>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Key size={14} />}
+                    onClick={() => {
+                      setReprovForm({ email: localClient.owner_email ?? "", slug: "", senha: "" });
+                      setReprovError(null);
+                      setReprovOpen(true);
+                    }}
+                  >
+                    Reprovisionar
+                  </Button>
+                </div>
+              )}
+
+              {reprovOpen && !reprovResult && (
+                <ProdutoEditRow>
+                  <div>
+                    <ProdutoEditLabel>E-mail do cliente *</ProdutoEditLabel>
+                    <ProdutoEditInput
+                      type="email"
+                      placeholder="dono@negocio.com"
+                      value={reprovForm.email}
+                      onChange={(e) => setReprovForm((f) => ({ ...f, email: e.target.value }))}
+                    />
+                  </div>
+                  <ProdutoEditGrid>
+                    <div>
+                      <ProdutoEditLabel>Slug (opcional — gerado pelo nome se vazio)</ProdutoEditLabel>
+                      <ProdutoEditInput
+                        placeholder="meu-negocio"
+                        value={reprovForm.slug}
+                        onChange={(e) => setReprovForm((f) => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))}
+                      />
+                    </div>
+                    <div>
+                      <ProdutoEditLabel>Senha provisória (opcional)</ProdutoEditLabel>
+                      <ProdutoEditInput
+                        placeholder="adm@123"
+                        value={reprovForm.senha}
+                        onChange={(e) => setReprovForm((f) => ({ ...f, senha: e.target.value }))}
+                      />
+                    </div>
+                  </ProdutoEditGrid>
+                  {reprovError && (
+                    <span style={{ fontSize: 12, color: "var(--color-danger)" }}>{reprovError}</span>
+                  )}
+                  <ProdutoEditActions>
+                    <Button variant="secondary" size="sm" onClick={() => setReprovOpen(false)}>Cancelar</Button>
+                    <Button variant="primary" size="sm" loading={reprovLoading} onClick={handleReprovision}>
+                      Provisionar
+                    </Button>
+                  </ProdutoEditActions>
+                </ProdutoEditRow>
+              )}
+
+              {reprovResult && (
+                <NewPasswordBox>
+                  <NewPasswordLabel>Provisionamento concluído! Recarregue a página para ver os links.</NewPasswordLabel>
+                  <NewPasswordValue>{reprovResult.temp_password}</NewPasswordValue>
+                  <NewPasswordHint>Slug: <strong>{reprovResult.slug}</strong> · Senha acima para enviar ao cliente.</NewPasswordHint>
+                </NewPasswordBox>
+              )}
+            </div>
           )}
 
           {localClient.owner_email && (
