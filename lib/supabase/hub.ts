@@ -27,7 +27,7 @@ export async function getClients(): Promise<ClientWithProducts[]> {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
     .from("clients")
-    .select("*, client_products(*)")
+    .select("*, client_products(*), payments(status, due_date)")
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`getClients: ${error.message}`);

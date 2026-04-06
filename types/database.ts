@@ -115,6 +115,7 @@ export type LeadInsert = Omit<Lead, "id" | "created_at"> & {
 
 export interface ClientWithProducts extends Client {
   client_products: ClientProduct[];
+  payments?: Pick<Payment, "status" | "due_date">[];
 }
 
 export interface ClientWithDetails extends Client {

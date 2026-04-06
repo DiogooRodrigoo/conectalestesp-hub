@@ -718,7 +718,8 @@ const SEGMENTOS = [
   "Loja de Roupas", "Mercado", "Mecânica", "Farmácia", "Outro",
 ];
 
-const BASE_URL = "https://marqueja.conectalestesp.com.br";
+const BASE_URL   = "https://marqueja.conectalestesp.com.br";
+const LOGIN_URL  = `${BASE_URL}/login`;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1234,6 +1235,27 @@ export default function ClienteDetailView({ client }: Props) {
                   <IconBtn
                     as="a"
                     href={painelUrl!}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Abrir"
+                  >
+                    <ArrowSquareOut size={13} />
+                  </IconBtn>
+                </LinkBtns>
+              </LinkRow>
+
+              <LinkRow>
+                <LinkLeft>
+                  <LinkLabel>URL de acesso (login do cliente)</LinkLabel>
+                  <LinkUrl>{LOGIN_URL}</LinkUrl>
+                </LinkLeft>
+                <LinkBtns>
+                  <IconBtn onClick={() => copyLink(LOGIN_URL, "login")} title="Copiar URL de login">
+                    {copiedId === "login" ? <Check size={13} weight="bold" /> : <Copy size={13} />}
+                  </IconBtn>
+                  <IconBtn
+                    as="a"
+                    href={LOGIN_URL}
                     target="_blank"
                     rel="noreferrer"
                     title="Abrir"
