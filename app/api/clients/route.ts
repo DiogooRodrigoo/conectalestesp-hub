@@ -7,15 +7,17 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const input: ClientInsert = {
-      name:         body.name,
-      owner_name:   body.owner_name   ?? null,
-      owner_email:  body.owner_email  ?? null,
-      phone:        body.phone        ?? null,
-      segment:      body.segment      ?? null,
-      neighborhood: body.neighborhood ?? null,
-      status:       body.status       ?? "active",
-      notes:        body.notes        ?? null,
-      business_id:  body.business_id  ?? null,
+      name:           body.name,
+      owner_name:     body.owner_name     ?? null,
+      owner_email:    body.owner_email    ?? null,
+      phone:          body.phone          ?? null,
+      segment:        body.segment        ?? null,
+      neighborhood:   body.neighborhood   ?? null,
+      status:         body.status         ?? "active",
+      notes:          body.notes          ?? null,
+      business_id:    body.business_id    ?? null,
+      slug:           body.slug           ?? null,
+      access_blocked: body.access_blocked ?? false,
     };
 
     const client = await createClient(input);

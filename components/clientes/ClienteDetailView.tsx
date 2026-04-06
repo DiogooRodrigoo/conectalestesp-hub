@@ -30,7 +30,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
 import Spinner from "@/components/ui/Spinner";
-import type { ClientWithDetails, ClientStatus, ProductStatus } from "@/types/database";
+import type { ClientWithDetails, ClientStatus, ClientProduct, ProductStatus } from "@/types/database";
 import { formatBRL, PRODUCT_LABELS } from "@/types/database";
 
 // ─── Animations ───────────────────────────────────────────────────────────────
