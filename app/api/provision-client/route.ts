@@ -1,23 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
-
-// ─── Clientes Supabase ────────────────────────────────────────────────────────
-
-// Cliente do Marque Já — sem tipo rígido pois o Hub não contém os types do Marque Já
-function createMarqueJaClient() {
-  const url = process.env.MARQUE_JA_SUPABASE_URL;
-  const key = process.env.MARQUE_JA_SERVICE_ROLE_KEY;
-  if (!url || !key) {
-    throw new Error(
-      "MARQUE_JA_SUPABASE_URL e MARQUE_JA_SERVICE_ROLE_KEY são obrigatórios"
-    );
-  }
-  return createClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -85,10 +68,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // marqueJa → Supabase do Marque Já (tabelas businesses, services, etc.)
-    // hubClient → Supabase do Hub (tabela clients)
-    const marqueJa = createMarqueJaClient();
-    const hubClient = createAdminSupabaseClient();
+    // Hub e Marque Já compartilham o mesmo Supabase
+    const db = createAdminSupabaseClient();
 
     const slug = (body.slug?.trim() || toSlug(body.nome)).replace(
       /[^a-z0-9-]/g,
@@ -96,7 +77,7 @@ export async function POST(req: NextRequest) {
     );
 
     // Verifica se slug já existe no Marque Já
-    const { data: slugCheck } = await marqueJa
+    const { data: slugCheck } = await db
       .from("businesses")
       .select("id")
       .eq("slug", slug)
@@ -112,7 +93,7 @@ export async function POST(req: NextRequest) {
     // 1. Criar auth user no Marque Já
     const tempPassword = body.senha?.trim() || "adm@123";
     const { data: authData, error: authError } =
-      await marqueJa.auth.admin.createUser({
+      await db.auth.admin.createUser({
         email: body.email,
         password: tempPassword,
         email_confirm: true,
@@ -154,7 +135,7 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    const { data: business, error: bizError } = await marqueJa
+    const { data: business, error: bizError } = await db
       .from("businesses")
       .insert(businessInsert)
       .select("id")
@@ -179,7 +160,7 @@ export async function POST(req: NextRequest) {
         close_time:  h.ativo ? `${h.fechamento}:00` : "18:00:00",
       }));
 
-      const { error: horasError } = await marqueJa
+      const { error: horasError } = await db
         .from("business_hours")
         .insert(horasInsert);
 
@@ -196,16 +177,17 @@ export async function POST(req: NextRequest) {
         close_time:  "18:00:00",
       }));
 
-      await marqueJa.from("business_hours").insert(defaultHours);
+      await db.from("business_hours").insert(defaultHours);
     }
 
     // 4. Criar serviços → guardar IDs por índice
     const serviceIds: string[] = [];
     const servicos = body.servicos ?? [];
+    const servicosErrors: string[] = [];
 
     for (let i = 0; i < servicos.length; i++) {
       const s = servicos[i];
-      const { data: svc, error: svcError } = await marqueJa
+      const { data: svc, error: svcError } = await db
         .from("services")
         .insert({
           business_id:   businessId,
@@ -219,6 +201,7 @@ export async function POST(req: NextRequest) {
 
       if (svcError || !svc) {
         console.error(`Serviço ${s.nome} falhou:`, svcError?.message);
+        servicosErrors.push(`${s.nome}: ${svcError?.message}`);
         serviceIds.push("");
       } else {
         serviceIds.push(svc.id);
@@ -226,8 +209,9 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Criar profissionais + vincular serviços
+    const profissionaisErrors: string[] = [];
     for (const prof of body.profissionais ?? []) {
-      const { data: professional, error: profError } = await marqueJa
+      const { data: professional, error: profError } = await db
         .from("professionals")
         .insert({ business_id: businessId, name: prof.nome })
         .select("id")
@@ -235,6 +219,7 @@ export async function POST(req: NextRequest) {
 
       if (profError || !professional) {
         console.error(`Profissional ${prof.nome} falhou:`, profError?.message);
+        profissionaisErrors.push(`${prof.nome}: ${profError?.message}`);
         continue;
       }
 
@@ -246,12 +231,12 @@ export async function POST(req: NextRequest) {
         }));
 
       if (psInserts.length > 0) {
-        await marqueJa.from("professional_services").insert(psInserts);
+        await db.from("professional_services").insert(psInserts);
       }
     }
 
     // 6. Atualizar Hub client com business_id + slug (usa cliente do Hub)
-    const { error: updateError } = await (hubClient as any)
+    const { error: updateError } = await (db as any)
       .from("clients")
       .update({ business_id: businessId, slug })
       .eq("id", body.client_id);
@@ -261,7 +246,19 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { business_id: businessId, slug, temp_password: tempPassword },
+      {
+        business_id: businessId,
+        slug,
+        temp_password: tempPassword,
+        debug: {
+          servicos_enviados: servicos.length,
+          servicos_criados: serviceIds.filter(Boolean).length,
+          servicos_erros: servicosErrors,
+          profissionais_enviados: (body.profissionais ?? []).length,
+          profissionais_erros: profissionaisErrors,
+          horarios_enviados: (body.horarios ?? []).length,
+        },
+      },
       { status: 201 }
     );
   } catch (err) {

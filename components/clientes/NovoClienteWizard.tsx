@@ -631,12 +631,14 @@ export default function NovoClienteWizard({ onClose, onSuccess, initialData }: P
 
         if (provRes.ok) {
           const prov = await provRes.json();
+          console.log("[provision-client] resultado:", prov.debug);
           setProvisionResult({ slug: prov.slug, temp_password: prov.temp_password });
           return; // não chama onSuccess() ainda — aguarda o usuário fechar o modal de credenciais
         } else {
           const err = await provRes.json();
-          console.error("Provisionamento falhou:", err.error);
-          // Não bloqueia — cliente foi criado no Hub, provisionamento pode ser refeito
+          setSubmitError(`Marque Já: ${err.error ?? "Erro ao provisionar. Verifique o console."}`);
+          setSaving(false);
+          return;
         }
       }
 
