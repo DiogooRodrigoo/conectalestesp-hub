@@ -12,7 +12,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "seed:poc": "npx tsx scripts/seed-poc-clients.ts"
   },
   "dependencies": {
     "next": "^15.0.0",
